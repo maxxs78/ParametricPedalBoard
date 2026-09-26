@@ -7,6 +7,12 @@
 // Andere Slicer lesen nur den Kern: alle Teile, nebeneinander im selben Raster.
 // Die Kennung „BambuStudio-…“ im Kopf ist die Voraussetzung dafür, dass diese Slicer die Plattendaten
 // überhaupt auswerten (geprüft mit dem Importer von OrcaSlicer 2.3; ältere Versionskennungen lehnt er ab).
+//
+// Farbe/Filament: Bambu Studio/OrcaSlicer und deren Ableger werten dafür NICHT das 3MF-Kernschema
+// (<basematerials>/pid/pindex) aus, sondern die "extruder"-Metadaten je <part> in model_settings.config
+// zusammen mit der Filamentliste in Metadata/project_settings.config (geprüft anhand eines von Bambu Studio
+// exportierten Referenz-3MF). <basematerials>/pid/pindex bleibt zusätzlich gesetzt, als Fallback für Slicer
+// ohne Plattenverwaltung (PrusaSlicer, Cura), die den 3MF-Kern direkt lesen.
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const n6 = v => +(+v).toFixed(6);
@@ -49,15 +55,17 @@ export function build3MF(plates, parts, opts) {
   for (const pi of used) {
     const pt = parts[pi];
     // jedes Bauteil ist ein Objekt aus Komponenten (Hauptkörper + ggf. Schrift-Einlage als zweites Teil)
+    // extruder = 1-basierter Index in `roles`, so wie ihn Metadata/project_settings.config unten erwartet
+    const bodyEx = roles.indexOf(pt.role) + 1;
     const a1 = id++;
     objs.push(meshObj(a1, pt.mesh, roles.indexOf(pt.role)));
-    const comps = [[a1, pt.name, 1]];
-    if (pt.inlay) { const a2 = id++; objs.push(meshObj(a2, pt.inlay, roles.indexOf('text'))); comps.push([a2, `${pt.name} – Schriftzug`, 2]); }
+    const comps = [[a1, pt.name, bodyEx]];
+    if (pt.inlay) { const textEx = roles.indexOf('text') + 1; const a2 = id++; objs.push(meshObj(a2, pt.inlay, roles.indexOf('text'))); comps.push([a2, `${pt.name} – Schriftzug`, textEx]); }
     const oid = id++;
     objs.push(`<object id="${oid}" name="${esc(pt.name)}" type="model"><components>${comps.map(([c]) => `<component objectid="${c}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>`).join('')}</components></object>`);
     cfgObjs.push(`  <object id="${oid}">
     <metadata key="name" value="${esc(pt.name)}"/>
-    <metadata key="extruder" value="1"/>
+    <metadata key="extruder" value="${bodyEx}"/>
   ${comps.map(([c, nm, ex]) => partCfg(c, nm, ex)).join('\n  ')}
   </object>`);
     ref.set(pi, oid);
@@ -115,6 +123,15 @@ ${cfgObjs.join('\n')}
 ${cfgPlates.join('\n')}
 </config>`;
 
+  // Filamentfarben je extruder (1-basiert, Reihenfolge = `roles`) plus Voreinstellung passend zur eigenen
+  // Filamentschätzung (3 Wandschleifen, 30 % Infill, siehe WALL_LOOPS/INFILL in app.js)
+  const projectSettings = JSON.stringify({
+    filament_colour: roles.map(r => (colors[r] || '#ffffff').toUpperCase()),
+    filament_type: roles.map(() => 'PETG'),
+    wall_loops: '3',
+    sparse_infill_density: '30%',
+  }, null, 1);
+
   const files = {
     '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -130,6 +147,7 @@ ${cfgPlates.join('\n')}
 </Relationships>`,
     '3D/3dmodel.model': model,
     'Metadata/model_settings.config': config,
+    'Metadata/project_settings.config': projectSettings,
   };
   (opts.thumbs || []).forEach((th, j) => {
     if (!th) return;
