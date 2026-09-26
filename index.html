@@ -81,6 +81,7 @@ button, input, select { font: inherit; color: inherit; }
 .modes button b { font-weight: 600; font-size: 15px; }
 .modes button span { font-size: 12.5px; color: var(--ink-2); line-height: 1.25; }
 .modes button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.modes button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .chip {

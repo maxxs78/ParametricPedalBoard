@@ -81,6 +81,9 @@ export const DEFAULTS = {
   mode: 'print',
   bedX: 220, bedY: 220, bedZ: 250, bedMargin: 5, slicerX: 0, slicerY: 0,
   W: 600, D: 300, hF: 32, hB: 100,
+  tiers: 1, psuTier: 1,
+  tier2D: 220, tier2StepH: 35, tier2Hb: 150, tier2Rails: 2,
+  tier3D: 180, tier3StepH: 35, tier3Hb: 190, tier3Rails: 2,
   nRails: 4, edge: 6,
   profile: '2020', railW: 40, railH: 20, railWall: 3, dovetail: true, dvAngle: 12,
   capT: 22, pocket: 10, supT: 24, maxSpan: 400,
@@ -154,10 +157,6 @@ function derive(p) {
   const w = alu ? prof.w : p.railW;
   const h = alu ? prof.h : p.railH;
   const tol = p.tol;
-  const rise = p.hB - p.hF;
-  const alpha = Math.atan2(rise, p.D);
-  const ca = Math.cos(alpha), sa = Math.sin(alpha);
-  const L = Math.hypot(p.D, rise);
   const bx = p.bedX - 2 * p.bedMargin, by = p.bedY - 2 * p.bedMargin, bz = p.bedZ;
 
   const endS = alu ? SCREW[prof.endScrew] : SCREW.S4;
@@ -166,21 +165,55 @@ function derive(p) {
   const coreOffsets = alu ? prof.cores : [0];
   const slotOffsets = alu ? prof.wide : [0];
 
-  if (rise < 0) errors.push('Die Rückseite muss mindestens so hoch sein wie die Vorderseite.');
   if (p.nRails < 1) errors.push('Mindestens eine Schiene angeben.');
 
-  // Schienenpositionen; hinten muss auch die untere Hinterkante der Schiene im Seitenteil bleiben
-  const aMin = p.edge, aMax = (p.D - p.edge - (h + tol) * sa) / ca;
-  const n = Math.max(1, Math.round(p.nRails));
-  const rails = [];
-  if (n === 1) rails.push((aMin + aMax) / 2);
-  else for (let i = 0; i < n; i++) rails.push(aMin + w / 2 + i * (aMax - aMin - w) / (n - 1));
-  const pitch = n > 1 ? (aMax - aMin - w) / (n - 1) : L;
-  const gap = pitch - w;
-  if (n > 1 && gap < 2) errors.push(`Die Schienen überlappen sich (Lücke ${gap.toFixed(1)} mm). Nimm weniger oder schmalere Schienen oder mach das Board tiefer.`);
-  else if (n > 1 && gap < 10) warnings.push(`Die Kabellücke zwischen den Schienen beträgt nur ${gap.toFixed(1)} mm. Klinkenstecker passen dort kaum durch.`);
+  // --- Stufen (Multi-Tier): jede Stufe ein eigener flacher Keil, Stufe i+1 beginnt an der Absatzoberkante
+  // von Stufe i (hF automatisch = vorheriges hB + Absatzhöhe). Stufe 1 verhält sich exakt wie das Board
+  // ohne Stufen (volle Rückwärtskompatibilität bei tiers === 1).
+  const nTiers = Math.max(1, Math.min(3, Math.round(p.tiers)));
+  if (nTiers > 1 && plate) errors.push('Mehrstufige Boards sind bei Bauart C (Druckplatte) noch nicht möglich. Wähle Bauart A oder B, oder stelle „Stufen“ auf 1.');
+  if (nTiers > 1 && p.bend) warnings.push('Die Biegung ist bei mehrstufigen Boards nicht möglich und wird ignoriert.');
+  if (nTiers > 1 && p.windows) warnings.push('Leichtbau-Fenster sind bei mehrstufigen Boards noch nicht möglich und werden ignoriert.');
+  if (nTiers > 1 && p.brace) warnings.push('Streben sind bei mehrstufigen Boards noch nicht möglich und werden ignoriert.');
 
-  const toYZ = (a, b) => [a * ca - b * sa, p.hF + a * sa + b * ca];
+  const tiersArr = [];
+  { let y0 = 0, Lstart = 0, prevHb = p.hF;
+    for (let ti = 0; ti < nTiers; ti++) {
+      const first = ti === 0;
+      const D_i = first ? p.D : p['tier' + (ti + 1) + 'D'];
+      const stepH = first ? 0 : p['tier' + (ti + 1) + 'StepH'];
+      const hF_i = first ? p.hF : prevHb + stepH;
+      const hB_i = first ? p.hB : p['tier' + (ti + 1) + 'Hb'];
+      const nRails_i = first ? Math.max(1, Math.round(p.nRails)) : Math.max(2, Math.round(p['tier' + (ti + 1) + 'Rails']));
+      const rise_i = hB_i - hF_i;
+      const alpha_i = Math.atan2(rise_i, D_i), ca_i = Math.cos(alpha_i), sa_i = Math.sin(alpha_i);
+      const L_i = Math.hypot(D_i, rise_i);
+      const label = first ? '' : `Stufe ${ti + 1}: `;
+      if (rise_i < 0) errors.push(`${label}Die Rückseite muss mindestens so hoch sein wie die Vorderseite.`);
+      const aMin_i = p.edge, aMax_i = (D_i - p.edge - (h + tol) * sa_i) / ca_i;
+      const railsLocal = [];
+      if (nRails_i === 1) railsLocal.push((aMin_i + aMax_i) / 2);
+      else for (let i = 0; i < nRails_i; i++) railsLocal.push(aMin_i + w / 2 + i * (aMax_i - aMin_i - w) / (nRails_i - 1));
+      const pitch_i = nRails_i > 1 ? (aMax_i - aMin_i - w) / (nRails_i - 1) : L_i;
+      const gap_i = pitch_i - w;
+      if (nRails_i > 1 && gap_i < 2) errors.push(`${label}Die Schienen überlappen sich (Lücke ${gap_i.toFixed(1)} mm). Nimm weniger oder schmalere Schienen oder mach die Stufe tiefer.`);
+      else if (nRails_i > 1 && gap_i < 10) warnings.push(`${label}Die Kabellücke zwischen den Schienen beträgt nur ${gap_i.toFixed(1)} mm. Klinkenstecker passen dort kaum durch.`);
+      if (!first && aMax_i - aMin_i < w) errors.push(`Stufe ${ti + 1} ist zu flach: Es passen keine ${nRails_i} Schienen (mindestens 2) auf ${D_i.toFixed(0)} mm Tiefe. Mach die Stufe tiefer oder nimm schmalere Schienen.`);
+      const tier = { idx: ti, y0, hF: hF_i, hB: hB_i, D: D_i, alpha: alpha_i, ca: ca_i, sa: sa_i, L: L_i, Lstart, gap: gap_i,
+        railsLocal, railsGlobal: railsLocal.map(a => a + Lstart) };
+      tiersArr.push(tier);
+      y0 += D_i; Lstart += L_i; prevHb = hB_i;
+    }
+  }
+  const Dtot = tiersArr.reduce((s, t) => s + t.D, 0);
+  const hBlast = tiersArr[tiersArr.length - 1].hB;
+  const tierOf = gA => { for (const t of tiersArr) if (gA <= t.Lstart + t.L + 1e-6) return t; return tiersArr[tiersArr.length - 1]; };
+  const toYZ = (a, b) => { const t = tierOf(a), la = a - t.Lstart; return [t.y0 + la * t.ca - b * t.sa, t.hF + la * t.sa + b * t.ca]; };
+  // Rückwärtskompatible Einzelwerte (Stufe 1 bzw. Gesamtboard) für Code, der noch von einer Neigung ausgeht
+  const { alpha, ca, sa, L } = tiersArr[0];
+  const rails = tiersArr.flatMap(t => t.railsGlobal);
+  const gap = Math.min(...tiersArr.map(t => t.gap));
+  const n = tiersArr[0].railsLocal.length;
 
   const frontLow = toYZ(rails[0] - w / 2 - tol, -h - tol)[1];
   if (frontLow < FLOOR_T + 1) {
@@ -234,16 +267,16 @@ function derive(p) {
   if (!alu) {
     let lo = 0, hi = 2000;
     // Plattenmodus: kleinster Plattenstreifen = eine Rippe mit den halben Nachbarstegen
-    const pw = plate && n > 1 ? Math.min(L, pitch + 12) : w;
+    const pw = plate && n > 1 ? Math.min(L, tiersArr[0].gap + w + 12) : w;
     if (!fitOnBed(1, pw, h, bx, by, bz).ok) { errors.push(plate ? 'Ein Plattenstreifen passt nicht in den Bauraum. Nimm mehr Schienen (Rippen) oder ein größeres Bett.' : 'Das Schienenprofil passt nicht in den Bauraum.'); hi = 0; }
     while (hi - lo > 0.5) { const m = (lo + hi) / 2; if (fitOnBed(m, pw, h, bx, by, bz).ok) lo = m; else hi = m; }
     maxRail = lo;
   }
   // Rückwand wird nur hinter den Stützen geteilt: jedes Feld muss als ein Rückwandteil aufs Bett passen
   let backMax = null;
-  if (p.back && fitOnBed(20, p.hB, p.backT, bx, by, bz).ok) {
+  if (p.back && fitOnBed(20, hBlast, p.backT, bx, by, bz).ok) {
     let lo = 0, hi = 3000;
-    while (hi - lo > 0.5) { const m = (lo + hi) / 2; if (fitOnBed(m, p.hB, p.backT, bx, by, bz).ok) lo = m; else hi = m; }
+    while (hi - lo > 0.5) { const m = (lo + hi) / 2; if (fitOnBed(m, hBlast, p.backT, bx, by, bz).ok) lo = m; else hi = m; }
     backMax = lo;
   }
   const backLens = sup => [0, ...sup, p.W].slice(1).map((x, i) => x - [0, ...sup][i]);
@@ -263,7 +296,7 @@ function derive(p) {
   // Taschen der beiden Felder bei der hintersten Schiene nicht berühren.
   let bendA = 0;
   if (p.bend && alu) warnings.push('Die Biegung ist bei Bauart B (durchgehendes Alu-Profil) nicht möglich. Wähle Bauart A oder C.');
-  if (p.bend && !alu) {
+  if (p.bend && !alu && nTiers === 1) {
     const railYs = rails.map(a => toYZ(a, 0)[0]);
     const daMax = Math.max(0.01, ...railYs) + w / 2;
     const safeGap = Math.max(0, p.supT - 2 * p.pocket - 4);
@@ -291,11 +324,13 @@ function derive(p) {
       segT[i] = { theta: T.theta - Tc.theta, tx: dx * cc - dy * cs, ty: dx * cs + dy * cc };
     }
   }
-  const G = { p, alu, plate, prof, w, h, tol, alpha, ca, sa, L, bx, by, bz, rails, gap, toYZ, scr, coreOffsets,
-    slotOffsets, railX0, railLen, supports, nBays, maxRail, errors, warnings, bendA, segT };
+  const G = { p, alu, plate, prof, w, h, tol, alpha, ca, sa, L, bx, by, bz, rails, gap, toYZ, tierOf, tiers: tiersArr,
+    Dtot, hBlast, nTiers, scr, coreOffsets, slotOffsets, railX0, railLen, supports, nBays, maxRail, errors, warnings, bendA, segT };
   if (!alu) G.joint = deriveJoint(G);
   if (plate && p.plateT > h - 4) errors.push(`Die Platte (${p.plateT} mm) ist zu dick für ${h} mm hohe Rippen.`);
-  G.psus = psuBaysOf(nBays).map(k => derivePsu(G, k));
+  const psuTierIdx = Math.max(0, Math.min(tiersArr.length - 1, Math.round(p.psuTier) - 1));
+  G.psuTier = tiersArr[psuTierIdx];
+  G.psus = psuBaysOf(nBays).map(k => derivePsu(G, k, G.psuTier));
   if (psuCount > G.psus.length) errors.push(`Es passen nur ${G.psus.length} Netzteile in die ${nBays} Felder.`);
   G.goodPsus = G.psus.filter(P => !P.bad);
   G.braces = [];                                   // folgt nach der Schnittplanung (generate)
@@ -344,8 +379,9 @@ function localWedgeT(G, cx, cy, th = -G.bendA) {
 const jHalf = (J, d) => J.wn / 2 + d * J.tanT;
 
 // --- Netzteil-/Batteriebox: Lage, Befestigungspunkte, Kollisionen
-function derivePsu(G, bayIdx) {
-  const { p, h, L, rails, slotOffsets, supports, errors, alu, prof } = G;
+function derivePsu(G, bayIdx, tier) {
+  const { p, h, slotOffsets, supports, errors, alu, prof } = G;
+  const rails = tier.railsGlobal;                      // Netzteil hängt nur an Schienen der eigenen Stufe
   const t = p.psuWall;
   const S = G.alu ? SCREW[prof.floorScrew] : SCREW.S4;
   const tp = Math.max(8, S.hh + 3.5);                  // Deckplatte, Schraubenkopf versenkt
@@ -376,10 +412,10 @@ function derivePsu(G, bayIdx) {
     const yMax = Math.max(G.toYZ(aR, bIn - t)[0], G.toYZ(pa1, bTop)[0], G.toYZ(pa1, bTop - tp)[0]);
     return { sP, aL, aR, holes, pa0, pa1, yMax };
   };
-  // Lage: die offene Rückseite endet psuGap vor der Rückwandebene (y = D), auch ohne Rückwand
-  const target = p.D - p.psuGap;
-  let pl = place(L - p.psuW / 2);
-  for (let it = 0; it < 12; it++) pl = place(pl.sP + (target - pl.yMax) / G.ca);
+  // Lage: die offene Rückseite endet psuGap vor der Rückwandebene der eigenen Stufe, auch ohne Rückwand
+  const target = tier.y0 + tier.D - p.psuGap;
+  let pl = place(tier.L - p.psuW / 2);
+  for (let it = 0; it < 12; it++) pl = place(pl.sP + (target - pl.yMax) / tier.ca);
   for (let it = 0; it < 600 && pl.yMax > target + 0.01; it++) pl = place(pl.sP - 0.5);
   const { sP, aL, aR, holes, pa0, pa1 } = pl;
 
@@ -402,7 +438,7 @@ function derivePsu(G, bayIdx) {
     errors.push(`Das Netzteil ist an dieser Stelle zu hoch, es fehlen ${(1 - zMin).toFixed(1)} mm Bodenfreiheit. Schieb es weiter nach hinten, erhöhe die Rückseite oder wähle ein flacheres Netzteil.`);
     psu.bad = true;
   }
-  if (pl.yMax > p.D + 0.01 || G.toYZ(pa0, bTop - tp)[0] < 1) {
+  if (pl.yMax > tier.y0 + tier.D + 0.01 || G.toYZ(pa0, bTop - tp)[0] < 1) {
     errors.push('Der Netzteilhalter ragt vorne oder hinten über das Board hinaus.');
     psu.bad = true;
   }
@@ -455,33 +491,33 @@ function deriveBraces(G, cuts) {
 // --- Rückwand: Platte an der Rückseite, Aussparungen hinter den Netzteilboxen
 function deriveBack(G) {
   const { p, h, tol, errors } = G;
-  const t = p.backT;
+  const t = p.backT, hB = G.hBlast, lastCa = G.tiers[G.tiers.length - 1].ca;
   const sx = backScrewX(G);
   // Aussparung umfasst die ganze Stirnseite des Halters plus Rand, Ecken verrundet
   const cutouts = G.goodPsus.map(P => {
     const zb = G.toYZ(P.aR, P.bIn - P.t)[1], zt = G.toYZ(P.aR, P.bTop)[1];
     let x0 = P.x0 - P.t - 6, x1 = P.x1 + P.t + 6;
     for (const x of sx) { if (x < P.xP) x0 = Math.max(x0, x + 7); else x1 = Math.min(x1, x - 7); }
-    const c = { x0, x1, z0: Math.max(4, zb - 6), z1: Math.min(p.hB - 6, zt + 4) };
+    const c = { x0, x1, z0: Math.max(4, zb - 6), z1: Math.min(hB - 6, zt + 4) };
     c.r = Math.max(1, Math.min(10, (c.z1 - c.z0) / 2 - 0.5, (c.x1 - c.x0) / 2 - 0.5));
     return c;
   }).filter(c => c.z1 - c.z0 > 8);
   const text = layoutText(G, cutouts, sx);
-  const zLow = Math.max(8, p.hB * 0.2);
-  const zHigh = p.hB - (h + tol) / G.ca - FLOOR_T - 6;
+  const zLow = Math.max(8, hB * 0.2);
+  const zHigh = hB - (h + tol) / lastCa - FLOOR_T - 6;
   const zs = zHigh - zLow >= 15 ? [zLow, zHigh] : [Math.max(6, (zLow + zHigh) / 2)];
   const depth = 10;                                                // Vorbohrung, Fenster halten Abstand
-  if (!fitOnBed(20, p.hB, t, G.bx, G.by, G.bz).ok) { errors.push('Die Rückwand passt nicht aufs Druckbett. Die hintere Höhe ist zu groß für den Bauraum.'); return null; }
+  if (!fitOnBed(20, hB, t, G.bx, G.by, G.bz).ok) { errors.push('Die Rückwand passt nicht aufs Druckbett. Die hintere Höhe ist zu groß für den Bauraum.'); return null; }
   // Teilung ausschließlich hinter den Stützen (dort wird jedes Teil mit zwei Schraubenreihen befestigt)
   const seams = G.supports.map(x => ({ x, type: 'sup' }));
   const edges = [0, ...G.supports, p.W];
   for (let k = 0; k + 1 < edges.length; k++) {
     const wd = edges[k + 1] - edges[k];
-    if (!fitOnBed(wd, p.hB, t, G.bx, G.by, G.bz).ok) { errors.push(`Das Rückwandteil zwischen den Stützen (${wd.toFixed(0)} mm) passt nicht aufs Druckbett. Verringere die maximale Spannweite, damit mehr Stützen gesetzt werden.`); return null; }
+    if (!fitOnBed(wd, hB, t, G.bx, G.by, G.bz).ok) { errors.push(`Das Rückwandteil zwischen den Stützen (${wd.toFixed(0)} mm) passt nicht aufs Druckbett. Verringere die maximale Spannweite, damit mehr Stützen gesetzt werden.`); return null; }
   }
   seams.sort((u, v) => u.x - v.x);
-  const tw = Math.min(14, p.hB * 0.22);
-  const tails = (p.hB > 60 ? [p.hB * 0.3, p.hB * 0.7] : [p.hB * 0.5]).map(zc => ({ zc, tw, nw: tw * 0.6 }));
+  const tw = Math.min(14, hB * 0.22);
+  const tails = (hB > 60 ? [hB * 0.3, hB * 0.7] : [hB * 0.5]).map(zc => ({ zc, tw, nw: tw * 0.6 }));
   return { t, cutouts, zs, depth, screwLen: pickScrewBelow(t + depth), seams, tails, dd: 8, text };
 }
 
@@ -501,7 +537,7 @@ function layoutText(G, cutouts, sx) {
   if (!free.length) return null;
   free.sort((f1, f2) => (f2[1] - f2[0]) - (f1[1] - f1[0]) || Math.abs((f1[0] + f1[1]) / 2 - p.W / 2) - Math.abs((f2[0] + f2[1]) / 2 - p.W / 2));
   const [fa, fb] = free[0];
-  const zLo = 6, zHi = p.hB - 6, lead = 1.45;
+  const zLo = 6, zHi = G.hBlast - 6, lead = 1.45;
   const unitsH = 1 + (lines.length - 1) * lead + 0.3;               // inkl. Unterlängen
   const wUnits = Math.max(0.01, ...shaped.map(x => x.x1 - x.x0));
   const sz = Math.min(p.textSize, (fb - fa - 8) / wUnits, (zHi - zLo) / unitsH);
@@ -518,14 +554,16 @@ function layoutText(G, cutouts, sx) {
 const backScrewX = G => [G.p.capT / 2, G.p.W - G.p.capT / 2, ...G.supports.flatMap(c => [c - G.p.supT / 4, c + G.p.supT / 4])];
 
 // ================================================================ Seitenteile (Endkappe / Stütze)
-function slopeCS(G, cs) { return cs.rotate(deg(G.alpha)).translate([0, G.p.hF]); }
-const topAtY = (G, y) => G.p.hF + y * Math.tan(G.alpha);
+// Stufenaware Varianten: cs/y werden in einer WELT-Y-Position verortet, die passende Stufe wird gesucht.
+const tierAtY = (G, y) => { for (const t of G.tiers) if (y <= t.y0 + t.D + 1e-6) return t; return G.tiers[G.tiers.length - 1]; };
+function slopeCS(G, cs, tier = G.tiers[0]) { return cs.translate([-tier.Lstart, 0]).rotate(deg(tier.alpha)).translate([0, tier.hF]).translate([tier.y0, 0]); }
+const topAtY = (G, y) => { const t = tierAtY(G, y); return t.hF + (y - t.y0) * Math.tan(t.alpha); };
 
 // Teilungsstelle: Schwalbenschwänze (Ausrichtung) + Verbindungslasche mit Schrauben
 function jointAt(G, c) {
   const { p } = G;
   const zlo = Math.max(p.wall, 5) + 2;
-  const zhi = topAtY(G, c) - (G.h + G.tol) / G.ca - FLOOR_T - 4;
+  const zhi = topAtY(G, c) - (G.h + G.tol) / tierAtY(G, c).ca - FLOOR_T - 4;
   const avail = zhi - zlo;
   const out = { c, dd: 0, tails: [], splice: null };
   if (avail < 12) return out;
@@ -550,18 +588,18 @@ function planCuts(G, T) {
   for (let k = 1; k <= 8; k++) {
     const cuts = [];
     for (let j = 1; j < k; j++) {
-      const ideal = j * p.D / k;
+      const ideal = j * G.Dtot / k;
       let c = ideal, best = Infinity;
       for (const cand of candidates) if (Math.abs(cand - ideal) < best) { best = Math.abs(cand - ideal); c = cand; }
-      if (best > p.D / k / 3) c = ideal;
+      if (best > G.Dtot / k / 3) c = ideal;
       if (cuts.length && c <= cuts[cuts.length - 1].c + 40) c = ideal;
       cuts.push(jointAt(G, c));
     }
     let ok = true;
     for (let i = 0; i < k && ok; i++) {
       const y0 = i === 0 ? 0 : cuts[i - 1].c;
-      const y1 = i === k - 1 ? p.D : cuts[i].c + cuts[i].dd;
-      const zTop = i === k - 1 ? p.hB : topAtY(G, cuts[i].c);
+      const y1 = i === k - 1 ? G.Dtot : cuts[i].c + cuts[i].dd;
+      const zTop = i === k - 1 ? G.hBlast : topAtY(G, cuts[i].c);
       if (!fitOnBed(y1 - y0, zTop, T, G.bx, G.by, G.bz).ok) ok = false;
     }
     if (ok) return { cuts, ok: true };
@@ -569,11 +607,23 @@ function planCuts(G, T) {
   return { cuts: [], ok: false };
 }
 
+// Umriss des Seitenteils (Endkappen/Stützen), von unten links im Uhrzeigersinn: Boden, Rückkante hoch,
+// dann Stufe für Stufe die Neigung zurück nach vorne, an jedem Absatz senkrecht hinunter zur Vorstufe.
+// Reduziert sich bei einer Stufe exakt auf das bisherige Trapez (Rückwärtskompatibilität).
+function stairOutline(G) {
+  const pts = [[0, 0], [G.Dtot, 0], [G.Dtot, G.hBlast]];
+  for (let i = G.tiers.length - 1; i >= 0; i--) {
+    const t = G.tiers[i];
+    pts.push([t.y0, t.hF]);
+    if (i > 0) pts.push([t.y0, G.tiers[i - 1].hB]);
+  }
+  return poly(pts);
+}
 function sideProfile(G, cuts) {
   const { p } = G;
-  const outline = poly([[0, 0], [p.D, 0], [p.D, p.hB], [0, p.hF]]);
+  const outline = stairOutline(G);
   const body = outline.offset(-2, 'Round').offset(2, 'Round');
-  if (!p.windows) return body;
+  if (!p.windows || G.nTiers > 1) return body;
 
   // Leichtbau-Fenster: überall innerhalb des Randabstands, außer um die Schienentaschen (Steg + Boden),
   // Strebentaschen, Gummifüße und Rückwand-Schrauben; Fachwerk-Rippen dazwischen
@@ -624,7 +674,7 @@ function sideProfile(G, cuts) {
 
 function notchCS(G) {
   const { w, h, tol } = G;
-  return csUnion(G.rails.map(s => slopeCS(G, rect(s - w / 2 - tol, -h - tol, s + w / 2 + tol, 80))));
+  return csUnion(G.rails.map(s => slopeCS(G, rect(s - w / 2 - tol, -h - tol, s + w / 2 + tol, 80), G.tierOf(s))));
 }
 
 // Schrauben der Verbindungslasche: Kopf in der Lasche (Innenseite x=T), Mutter außen (x=0)
@@ -671,7 +721,9 @@ function sideSolid(G, kind, profile2D, cuts) {
       }
     } else {
       const pocket = mk3D(shape);
-      for (const s of G.rails) cut.push(pocket.translate([0, s, 0]).rotate([deg(G.alpha), 0, 0]).translate([0, 0, p.hF]));
+      // Jede Schienentasche wird um die Neigung IHRER EIGENEN Stufe gedreht (Mehrstufen-Boards).
+      for (const s of G.rails) { const t = G.tierOf(s), la = s - t.Lstart;
+        cut.push(pocket.translate([0, la, 0]).rotate([deg(t.alpha), 0, 0]).translate([0, t.y0, t.hF])); }
     }
   }
 
@@ -682,14 +734,15 @@ function sideSolid(G, kind, profile2D, cuts) {
       cut.push(ext(circle(y, z, scr.cbD / 2), -1, scr.cbDepth));
     }
   } else {
-    const cyl = (x, P, off, len, r) => M.Manifold.cylinder(len, r, r, 24)
-      .rotate([deg(G.alpha), 0, 0])
-      .translate([x, P[0] + off * G.sa, P[1] - off * G.ca]);
+    const cyl = (x, P, off, len, r, t) => M.Manifold.cylinder(len, r, r, 24)
+      .rotate([deg(t.alpha), 0, 0])
+      .translate([x, P[0] + off * t.sa, P[1] - off * t.ca]);
     for (const s of G.rails) for (const { x, a } of supportScrews(G)) {
+      const t = G.tierOf(s);
       const P = G.toYZ(s + a, -h - tol);
       const bh = m => sideOf(m, x > T / 2);
-      cut.push(bh(cyl(x, P, FLOOR_T + 2, FLOOR_T + 3, scr.floorS.clear / 2)));
-      cut.push(bh(cyl(x, P, FLOOR_T + 400, 400, scr.accessD / 2)));
+      cut.push(bh(cyl(x, P, FLOOR_T + 2, FLOOR_T + 3, scr.floorS.clear / 2, t)));
+      cut.push(bh(cyl(x, P, FLOOR_T + 400, 400, scr.accessD / 2, t)));
     }
   }
   // Streben: von unten offene Taschen, Vorbohrung für die Schraube von unten
@@ -706,7 +759,7 @@ function sideSolid(G, kind, profile2D, cuts) {
   }
   // Rückwand: Vorbohrungen in der Hinterkante
   if (G.back) for (const x of kind === 'end' ? [T / 2] : [T / 4, 3 * T / 4]) for (const z of G.back.zs) {
-    let m = M.Manifold.cylinder(G.back.depth + 1, PILOT_R, PILOT_R, 16).rotate([-90, 0, 0]).translate([x, p.D - G.back.depth, z]);
+    let m = M.Manifold.cylinder(G.back.depth + 1, PILOT_R, PILOT_R, 16).rotate([-90, 0, 0]).translate([x, G.Dtot - G.back.depth, z]);
     cut.push(kind === 'sup' ? sideOf(m, x > T / 2) : m);
   }
   if (p.feet) {
@@ -736,7 +789,7 @@ function sideSolid(G, kind, profile2D, cuts) {
 const supportScrews = G => G.alu
   ? G.slotOffsets.map(a => ({ x: G.p.supT / 2, a }))
   : [{ x: G.p.supT / 4, a: 0 }, { x: 3 * G.p.supT / 4, a: 0 }];
-const feetY = G => { const inset = Math.max(G.p.footD / 2 + 6, 15); return [inset, G.p.D - inset]; };
+const feetY = G => { const inset = Math.max(G.p.footD / 2 + 6, 15); return [inset, G.Dtot - inset]; };
 
 function spliceSolid(G, sp) {
   const t2 = 0.2;
@@ -1009,7 +1062,7 @@ function backPieces(G) {
   // weitesten von der Stützenmitte entfernt); zusätzlicher Spalt an der Fuge, damit sich die Teile nicht schneiden.
   // (konkav/positiv laufen die Teile hinten auseinander; nur konvex/negativ laufen sie aufeinander zu)
   const t2 = G.bendA < 0 ? G.tol / 2 + p.D * Math.sin(rad(Math.abs(G.bendA))) + 2 : G.tol / 2;
-  let cs = rect(0, 0, p.W, p.hB).offset(-1.5, 'Round').offset(1.5, 'Round');
+  let cs = rect(0, 0, p.W, G.hBlast).offset(-1.5, 'Round').offset(1.5, 'Round');
   const holes = [];
   for (const c of B.cutouts) holes.push(rect(c.x0, c.z0, c.x1, c.z1).offset(-c.r, 'Round', 2, 64).offset(c.r, 'Round', 2, 64));
   for (const x of backScrewX(G)) for (const z of B.zs) holes.push(circle(x, z, SCREW.S4.clear / 2, 20));
@@ -1060,6 +1113,7 @@ export function clipDims(c) {
 // Öffnung, in die der Einsatz greift: Breite o (quer, a) und Materialdicke d darüber (Griffhöhe)
 function clipSpec(G) {
   const { p } = G;
+  if (G.nTiers > 1) return { err: 'PedalClips sind bei mehrstufigen Boards noch nicht möglich.' };
   if (G.rails.length < 2) return { err: 'PedalClips brauchen mindestens zwei Schienen (die Lücke dazwischen hält den Clip).' };
   if (G.plate) {
     const sh = Math.min(p.slotH, G.gap - 12);
@@ -1209,6 +1263,7 @@ export function generate(params) {
     gap: G.gap, railLen: G.railLen, maxRail: G.maxRail, usable: [p.W - 2 * p.capT, G.L],
     bays: G.nBays, psuBays: G.psus.map(P => P.bay),
     bendAngle: G.bendA, bendTotal: G.bendA * G.supports.length,
+    D: G.Dtot, hB: G.hBlast, tiers: G.nTiers,
   };
   if (G.errors.length) return result;
 
@@ -1224,7 +1279,7 @@ export function generate(params) {
     }
     const cuts = plan.cuts;
     if (cuts.some(c => !c.splice)) G.warnings.push('An mindestens einer Teilungsstelle ist das Seitenteil zu niedrig für eine Verbindungslasche. Diese Stelle wird nur verklebt.');
-    G.braces = p.brace ? deriveBraces(G, cuts) : [];
+    G.braces = (p.brace && G.nTiers === 1) ? deriveBraces(G, cuts) : [];
     const prof2D = sideProfile(G, cuts);
     const endSolid = sideSolid(G, 'end', prof2D, cuts);
     const supSolid = G.supports.length ? sideSolid(G, 'sup', prof2D, cuts) : null;
@@ -1299,13 +1354,14 @@ export function generate(params) {
     G.supports.forEach((c, k) => { for (const s of G.rails) for (const { x: xs, a } of supportScrews(G)) {
       const x = c - p.supT / 2 + xs;
       const T2 = G.segT[xs > p.supT / 2 ? k + 1 : k];
+      const nr = [0, -G.tierOf(s).sa, G.tierOf(s).ca];              // Bodennormale der Stufe dieser Schiene
       const seat = Y(s + a, -h - G.tol - FLOOR_T);
-      hw.push({ type: 'screw', s: G.alu ? G.prof.floorScrew : 'S4', len: floorLen, p: bendPt(T2, [x, ...seat]), dir: bendVec(T2, n), ex: bendVec(T2, [0, 0, -0.9]) });
-      if (G.alu) hw.push({ type: 'tnut', ...G.prof.tnut, p: bendPt(T2, [x, ...Y(s + a, -h + G.prof.lip + G.prof.tnut.t / 2 + 0.3)]), dir: bendVec(T2, n), along: bendVec(T2, [1, 0, 0]), ex: bendVec(T2, [0, n[1] * 0.7, n[2] * 0.7]) });
+      hw.push({ type: 'screw', s: G.alu ? G.prof.floorScrew : 'S4', len: floorLen, p: bendPt(T2, [x, ...seat]), dir: bendVec(T2, nr), ex: bendVec(T2, [0, 0, -0.9]) });
+      if (G.alu) hw.push({ type: 'tnut', ...G.prof.tnut, p: bendPt(T2, [x, ...Y(s + a, -h + G.prof.lip + G.prof.tnut.t / 2 + 0.3)]), dir: bendVec(T2, nr), along: bendVec(T2, [1, 0, 0]), ex: bendVec(T2, [0, nr[1] * 0.7, nr[2] * 0.7]) });
     } });
 
-    // ---- Schienen
-    const place = (m, s, x0) => m.translate([0, s, 0]).rotate([deg(G.alpha), 0, 0]).translate([x0, 0, p.hF]);
+    // ---- Schienen (Platzierung stufenweise: jede Schiene wird um ihre eigene Stufe gedreht/verschoben)
+    const place = (m, s, x0) => { const t = G.tierOf(s), la = s - t.Lstart; return m.translate([0, la, 0]).rotate([deg(t.alpha), 0, 0]).translate([x0, t.y0, t.hF]); };
     const railEx = n.map(v => v * 0.7);
     if (G.alu) {
       const sec = aluSection(G.prof);
@@ -1364,8 +1420,11 @@ export function generate(params) {
       const flatL = holder.rotate([0, -90, 0]);
       result.parts.push(printPart(G, flatL, `${label} links`, nP, { group: 'psu' }));
       result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), `${label} rechts`, nP, { group: 'psu' }));
-      const down = n.map(v => -v);
-      const toAsm = m => m.rotate([deg(G.alpha), 0, 0]).translate([0, 0, p.hF]);
+      const psuT = G.psuTier;
+      const down = [0, psuT.sa, -psuT.ca];
+      // P.aL/P.aR/P.sP usw. sind globale a-Werte (inkl. Bogenlänge der vorherigen Stufen) – vor dem
+      // Drehen um die eigene Stufe erst wieder auf lokale a-Werte zurückrechnen (wie place() für Schienen).
+      const toAsm = m => m.translate([0, -psuT.Lstart, 0]).rotate([deg(psuT.alpha), 0, 0]).translate([0, psuT.y0, psuT.hF]);
       const hL = toAsm(holder), hR = toAsm(holder.mirror([1, 0, 0]));
       for (const P of G.goodPsus) {
         const T2 = G.segT[P.bay - 1];
@@ -1444,14 +1503,14 @@ export function generate(params) {
         const nm = `Rückwand${pieces.length > 1 ? ` · Teil ${i + 1}/${pieces.length}` : ''}${hasText ? ' · mit Schriftzug' : ''}`;
         result.parts.push(printPart(G, toPrint(plate), nm, 1, { group: 'back' }, inlay ? toPrint(inlay) : null));
         const T2 = G.segT[i];
-        const toAsm = m => bendMesh(T2, m.rotate([90, 0, 0]).translate([0, p.D + B.t, 0]));
+        const toAsm = m => bendMesh(T2, m.rotate([90, 0, 0]).translate([0, G.Dtot + B.t, 0]));
         result.assembly.push({ mesh: toMesh(toAsm(plate)), role: 'panel', explode: bendVec(T2, [0, 1.1, 0]) });
         if (inlay) result.assembly.push({ mesh: toMesh(toAsm(inlay)), role: 'text', explode: bendVec(T2, [0, 1.1, 0]) });
       });
       if (textCS && emb === false && p.textDepth > B.t - 1.2) G.warnings.push(`Die Gravur ist auf ${dT.toFixed(1)} mm begrenzt, damit hinter der Schrift 1,2 mm Wand stehen bleiben.`);
       for (const x of backScrewX(G)) for (const z of B.zs) {
         const T2 = G.segT[bayIdxForX(G, x)];
-        hw.push({ type: 'screw', s: 'S4', len: B.screwLen, p: bendPt(T2, [x, p.D + B.t, z]), dir: bendVec(T2, [0, -1, 0]), ex: bendVec(T2, [0, 1.7, 0]) });
+        hw.push({ type: 'screw', s: 'S4', len: B.screwLen, p: bendPt(T2, [x, G.Dtot + B.t, z]), dir: bendVec(T2, [0, -1, 0]), ex: bendVec(T2, [0, 1.7, 0]) });
       }
     }
 
@@ -1568,7 +1627,7 @@ function drawingData(G, prof2D, cuts) {
       zmin: Math.min(...wallPts.map(q => q[1])), zmax: Math.max(...wallPts.map(q => q[1])) };
   });
   return {
-    mode: p.mode, W: p.W, D: p.D, hF: p.hF, hB: p.hB, angle: deg(G.alpha), capT: p.capT, supT: p.supT, pocket: p.pocket,
+    mode: p.mode, W: p.W, D: G.Dtot, hF: p.hF, hB: G.hBlast, angle: deg(G.alpha), tiers: G.nTiers, capT: p.capT, supT: p.supT, pocket: p.pocket,
     supports: G.supports, railX0: G.railX0, railLen: G.railLen, w, h,
     profileLabel: G.alu ? `Alu-Profil ${G.prof.label}` : G.plate ? `gedruckte Platte ${p.plateT} mm mit Rippen ${w}×${h}` : `gedruckte Schiene ${w}×${h}, Wand ${p.railWall}`,
     outline: polysOf(prof2D), notches: polysOf(notchCS(G)), rails, section: secPolys, cb,

@@ -26,9 +26,20 @@ const GROUPS = [
   ] },
   { title: 'Board', open: true, fields: [
     { id: 'W', label: 'Breite', hint: 'außen, links–rechts', unit: 'mm', min: 200, max: 1500, step: 5 },
-    { id: 'D', label: 'Tiefe', hint: 'vorne–hinten', unit: 'mm', min: 120, max: 600, step: 5 },
+    { id: 'D', label: 'Tiefe', hint: 'vorne–hinten (bei Stufen: Stufe 1)', unit: 'mm', min: 120, max: 600, step: 5 },
     { id: 'hF', label: 'Höhe vorne', unit: 'mm', min: 15, max: 150, step: 1 },
-    { id: 'hB', label: 'Höhe hinten', unit: 'mm', min: 15, max: 250, step: 1 },
+    { id: 'hB', label: 'Höhe hinten', hint: 'bei Stufen: Stufe 1', unit: 'mm', min: 15, max: 250, step: 1 },
+  ] },
+  { title: 'Stufen', open: false, show: isPrint, fields: [
+    { id: 'tiers', label: 'Anzahl Stufen', hint: 'nur Bauart A/B; je Stufe mind. 2 Schienen', unit: '#', min: 1, max: 3, step: 1 },
+    { id: 'tier2D', label: 'Stufe 2 · Tiefe', unit: 'mm', min: 80, max: 500, step: 5, show: p => p.tiers >= 2 },
+    { id: 'tier2StepH', label: 'Stufe 2 · Absatzhöhe', unit: 'mm', min: 10, max: 150, step: 1, show: p => p.tiers >= 2 },
+    { id: 'tier2Hb', label: 'Stufe 2 · Höhe hinten', unit: 'mm', min: 20, max: 350, step: 1, show: p => p.tiers >= 2 },
+    { id: 'tier2Rails', label: 'Stufe 2 · Schienen', unit: 'Stk', min: 2, max: 8, step: 1, show: p => p.tiers >= 2 },
+    { id: 'tier3D', label: 'Stufe 3 · Tiefe', unit: 'mm', min: 80, max: 500, step: 5, show: p => p.tiers >= 3 },
+    { id: 'tier3StepH', label: 'Stufe 3 · Absatzhöhe', unit: 'mm', min: 10, max: 150, step: 1, show: p => p.tiers >= 3 },
+    { id: 'tier3Hb', label: 'Stufe 3 · Höhe hinten', unit: 'mm', min: 20, max: 400, step: 1, show: p => p.tiers >= 3 },
+    { id: 'tier3Rails', label: 'Stufe 3 · Schienen', unit: 'Stk', min: 2, max: 8, step: 1, show: p => p.tiers >= 3 },
   ] },
   { title: 'Schienen', open: true, fields: [
     { id: 'nRails', label: 'Anzahl', unit: 'Stk', min: 1, max: 12, step: 1 },
@@ -88,8 +99,9 @@ const GROUPS = [
     { id: 'psuL', label: 'Länge', hint: 'entlang der Breite', unit: 'mm', min: 40, max: 500, step: 1, show: p => p.psu },
     { id: 'psuW', label: 'Breite', hint: 'entlang der Neigung', unit: 'mm', min: 20, max: 300, step: 1, show: p => p.psu },
     { id: 'psuH', label: 'Höhe', unit: 'mm', min: 10, max: 120, step: 1, show: p => p.psu },
-    { id: 'psuGap', label: 'Abstand zur Rückwand', hint: 'offene Rückseite bis zur Rückwandebene', unit: 'mm', min: 0, max: 250, step: 0.5, show: p => p.psu },
+    { id: 'psuGap', label: 'Abstand zur Rückwand', hint: 'offene Rückseite bis zur Rückwandebene der eigenen Stufe', unit: 'mm', min: 0, max: 250, step: 0.5, show: p => p.psu },
     { id: 'psuBay', label: 'Feld', hint: '0 = automatisch (Mitte), sonst erstes Feld', unit: '#', min: 0, max: 20, step: 1, show: p => p.psu },
+    { id: 'psuTier', label: 'Stufe', hint: 'auf welcher Stufe das Netzteil sitzt', unit: '#', min: 1, max: 3, step: 1, show: p => p.psu && p.tiers > 1 },
   ] },
   { title: 'Toleranz', open: false, fields: [
     { id: 'tol', label: 'Passungsspiel', hint: 'Schiene ↔ Tasche, Schwalbenschwanz', unit: 'mm', min: 0, max: 1, step: 0.05 },
@@ -155,6 +167,9 @@ function syncForm() {
   }
   for (const det of form.querySelectorAll('[data-grp]')) det.hidden = !GROUPS[+det.dataset.grp].show(params);
   for (const b of document.querySelectorAll('.modes button')) b.setAttribute('aria-pressed', String(b.dataset.mode === params.mode));
+  const plateBtn = document.getElementById('mode-plate');
+  plateBtn.disabled = params.tiers > 1;
+  plateBtn.title = params.tiers > 1 ? 'Bei mehrstufigen Boards noch nicht möglich (Stufen zuerst auf 1 stellen)' : '';
 }
 function onInput(e) {
   const el = e.target; if (!el.id || !el.id.startsWith('f-')) return;
@@ -168,6 +183,7 @@ function onInput(e) {
     if (!Number.isFinite(v)) return;
     params[id] = Math.min(f.max, Math.max(f.min, v));
   }
+  if (id === 'tiers' && params.tiers > 1 && params.mode === 'plate') params.mode = 'print';
   changed();
 }
 function changed() {
@@ -175,7 +191,10 @@ function changed() {
   try { localStorage.setItem(STORE, JSON.stringify(params)); } catch (e) { /* ohne Speicher */ }
   schedule();
 }
-document.querySelectorAll('.modes button').forEach(b => b.addEventListener('click', () => { params.mode = b.dataset.mode; changed(); }));
+document.querySelectorAll('.modes button').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.mode === 'plate' && params.tiers > 1) return;
+  params.mode = b.dataset.mode; changed();
+}));
 const presetBox = document.getElementById('presets');
 for (const pr of PRESETS) {
   const b = document.createElement('button');
@@ -658,8 +677,9 @@ function updateHud() {
       : `Keine mögliche Position: ${err || 'alle Öffnungen sind durch Netzteil, Streben oder Bodenfreiheit blockiert.'}`;
     return;
   }
-  dim.textContent = `${p.W} × ${p.D} × ${p.hF}–${p.hB} mm`;
-  sub.textContent = i ? `Neigung ${fmt(i.angle, 1)}° · ${i.rails} Schienen · ${i.supports} Stütze${i.supports === 1 ? '' : 'n'} · Stellfläche ${fmt(i.usable[0])} × ${fmt(i.usable[1])} mm` +
+  const totalD = i ? i.D : p.D, totalHb = i ? i.hB : p.hB;
+  dim.textContent = `${p.W} × ${fmt(totalD)} × ${p.hF}–${fmt(totalHb)} mm`;
+  sub.textContent = i ? `${p.tiers > 1 ? `${p.tiers} Stufen · ` : ''}Neigung ${fmt(i.angle, 1)}° · ${i.rails} Schienen · ${i.supports} Stütze${i.supports === 1 ? '' : 'n'} · Stellfläche ${fmt(i.usable[0])} × ${fmt(i.usable[1])} mm` +
     (p.bend && i.bendAngle ? ` · gebogen ${fmt(i.bendAngle, 1)}°/Stütze, Bogen gesamt ${fmt(Math.abs(i.bendTotal), 1)}°` : '') : '';
   const sw = c => `<i style="background:${c}"></i>`;
   leg.innerHTML = `<span>${sw(look.printed)}gedruckt</span>` +
@@ -672,6 +692,29 @@ function updateHud() {
     (p.psu ? `<span><i style="background:${look.psu};opacity:.6"></i>Netzteil</span>` : '');
 }
 
+// Filamentschätzung: Wandvolumen über die tatsächliche Netzoberfläche (Wandschleifen × Linienbreite),
+// Rest des Vollkörpers mit dem Infill-Anteil – realistischer als ein pauschaler Faktor aufs Volumen,
+// weil dünnwandige Teile (Schienen, Fenster-Stege) so nicht überschätzt werden.
+const WALL_LOOPS = 3, LINE_W = 0.44, WALL_T = WALL_LOOPS * LINE_W / 10;  // cm, ≈1,2 mm bei 3 Schleifen/0,4-mm-Düse
+const INFILL = 0.30;
+const DENSITY = { PETG: 1.27, PLA: 1.24, ASA: 1.05 };                    // g/cm³
+function meshArea(mesh) {                                                // Netzoberfläche in cm²
+  const P = mesh.positions, I = mesh.indices;
+  let a2 = 0;
+  for (let t = 0; t < I.length; t += 3) {
+    const p0 = 3 * I[t], p1 = 3 * I[t + 1], p2 = 3 * I[t + 2];
+    const ux = P[p1] - P[p0], uy = P[p1 + 1] - P[p0 + 1], uz = P[p1 + 2] - P[p0 + 2];
+    const vx = P[p2] - P[p0], vy = P[p2 + 1] - P[p0 + 1], vz = P[p2 + 2] - P[p0 + 2];
+    a2 += Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
+  }
+  return a2 / 2 / 100;                                                   // mm² → cm²
+}
+function partGrams(pt, density) {
+  const area = meshArea(pt.mesh) + (pt.inlay ? meshArea(pt.inlay) : 0);
+  const shell = Math.min(pt.volume, area * WALL_T);                      // Wände + Deck-/Bodenlagen
+  const core = Math.max(0, pt.volume - shell) * INFILL;
+  return (shell + core) * density;
+}
 function renderParts() {
   const pane = document.getElementById('pane-parts');
   const cnt = document.getElementById('c-parts');
@@ -683,18 +726,28 @@ function renderParts() {
   const total = result.parts.reduce((s, x) => s + x.qty, 0);
   cnt.textContent = total;
   const vol = result.parts.reduce((s, x) => s + x.qty * x.volume, 0);
+  const gramsOf = pt => partGrams(pt, DENSITY.PETG) * pt.qty;
+  const totalG = result.parts.reduce((s, x) => s + gramsOf(x), 0);
   const rows = result.parts.map((pt, i) => `<tr class="${i === selected ? 'sel' : ''}">
     <td><button type="button" class="linkbtn" data-show="${i}">${esc(pt.name)}</button></td>
     <td class="n">${pt.qty}×</td>
     <td class="n">${pt.size.map(v => fmt(v, 1)).join(' × ')}</td>
     <td>${pt.fit.ok ? `<span class="pill ok">passt${pt.fit.angle ? ` · ${fmt(pt.fit.angle, 1)}° diagonal` : ''}</span>` : '<span class="pill bad">passt nicht</span>'}</td>
     <td class="n">${fmt(pt.volume * pt.qty, 0)} cm³</td>
+    <td class="n">${fmt(gramsOf(pt), 0)} g</td>
     <td><button type="button" class="btn" data-stl="${i}">STL</button>${pt.inlay ? ` <button type="button" class="btn" data-stlt="${i}" title="Schriftzug als eigener Körper">Schrift</button>` : ''}</td></tr>`).join('');
   pane.innerHTML = `<div class="tablewrap"><table>
-    <thead><tr><th>Teil</th><th class="n">Anz.</th><th class="n">Maße in Druckrichtung (mm)</th><th>Druckbett</th><th class="n">Volumen</th><th></th></tr></thead>
+    <thead><tr><th>Teil</th><th class="n">Anz.</th><th class="n">Maße in Druckrichtung (mm)</th><th>Druckbett</th><th class="n">Volumen</th><th class="n">Filament (PETG)</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table></div>
-    <p class="notes">${total} Druckteile, zusammen ${fmt(vol)} cm³ Vollmaterial. Bei 3 Perimetern und 25 % Infill sind das grob ${fmt(vol * 1.25 * 0.5 / 1000, 1)} kg PETG.
-    Die Teile liegen bereits in Druckrichtung auf dem Bett (Außenseite unten, Schienen mit der Oberseite nach unten). Die Seitenteile brauchen keine Stützstrukturen.</p>`;
+    <p class="notes">${total} Druckteile, zusammen ${fmt(vol)} cm³ Vollmaterial und geschätzt ${fmt(totalG / 1000, 2)} kg Filament (PETG, ${fmt(DENSITY.PETG,2)} g/cm³) für alle Platten zusammen.
+    Schätzung je Teil: ${WALL_LOOPS} Wandschleifen (≈${fmt(WALL_T * 10, 1)} mm bei 0,4-mm-Düse) plus ${Math.round(INFILL * 100)} % Infill – über die tatsächliche Bauteiloberfläche gerechnet, nicht pauschal ums Volumen, damit dünnwandige Teile (Schienen, Fenster-Stege) nicht überschätzt werden. Reale Werte hängen vom Slicer-Profil ab (±15–20 % sind normal).</p>
+    <p class="notes"><b style="color:var(--ink)">Material</b> – die Zahlen oben gelten für PETG; zum Umrechnen auf ein anderes Filament die Dichte ins Verhältnis setzen (Gewicht × eigene Dichte ÷ ${fmt(DENSITY.PETG,2)}):</p>
+    <ul class="notes">
+      <li><b style="color:var(--ink)">PLA</b> (${fmt(DENSITY.PLA,2)} g/cm³): am einfachsten zu drucken, am steifsten, aber am sprödesten. Erweicht schon ab ca. 55–60 °C – <b>nur innen</b>, nie im Auto oder in der Sonne hinterm Fenster. Für ein Board, das nur zu Hause/im Proberaum steht, funktional ausreichend.</li>
+      <li><b style="color:var(--ink)">PETG</b> (${fmt(DENSITY.PETG,2)} g/cm³, <b>empfohlen</b>): zäher und schlagfester als PLA, verträgt kurzzeitig bis ca. 70–75 °C, dauerhaft eher bis 60 °C. Gut für Transport/Bühne, feuchtigkeitsunempfindlich. Direkte pralle Sonne über Stunden (z. B. Autofenster im Sommer) sollte vermieden werden. Guter Kompromiss aus Druckbarkeit und Stabilität – Standardempfehlung für dieses Board.</li>
+      <li><b style="color:var(--ink)">ASA</b> (${fmt(DENSITY.ASA,2)} g/cm³): UV- und witterungsbeständig, hält dauerhaft ca. 90–100 °C aus, bleibt auch nach Monaten in der Sonne stabil und verfärbt kaum. Für Open-Air-Gigs, im Auto oder auf dem Balkon gelagerte Boards die beste Wahl. Braucht aber ein beheiztes Druckbett und idealerweise ein geschlossenes Gehäuse (Warping, Dämpfe) – anspruchsvoller im Druck als PLA/PETG.</li>
+    </ul>
+    <p class="notes">Die Teile liegen bereits in Druckrichtung auf dem Bett (Außenseite unten, Schienen mit der Oberseite nach unten). Die Seitenteile brauchen keine Stützstrukturen.</p>`;
 }
 
 function renderBom() {
