@@ -163,6 +163,7 @@ tr.sel td { background: var(--accent-soft); }
 .pill { display: inline-block; font-size: 12.5px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
 .pill.ok { background: var(--ok-soft); color: var(--ok); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
 .linkbtn { border: 0; background: none; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; cursor: pointer; padding: 0; text-align: left; }
 .linkbtn:hover { text-decoration-color: var(--accent); }
 .msgs { display: grid; gap: 8px; max-width: 80ch; }
@@ -211,7 +212,7 @@ tr.sel td { background: var(--accent-soft); }
     </div>
     <div class="presets" id="presets" aria-label="Vorlagen"></div>
     <form id="form" autocomplete="off"></form>
-    <details class="grp" id="clips" open><summary>PedalClips</summary></details>
+    <details class="grp" id="clips" open><summary>PedalClips <span class="pill warn">experimentell</span></summary></details>
     <details class="grp" id="look" open></details>
     <p class="notes" style="margin-top:14px">Die Einstellungen werden in diesem Browser gespeichert. <button type="button" class="linkbtn" id="reset">Auf Standard zurücksetzen</button></p>
   </aside>

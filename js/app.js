@@ -456,10 +456,11 @@ function renderClipEditor() {
         <button type="button" class="btn" data-cact="del">Entfernen</button>
       </div></div>`;
   }).join('');
-  clipBox.innerHTML = `<summary>PedalClips</summary><div class="fields">
+  clipBox.innerHTML = `<summary>PedalClips <span class="pill warn">experimentell</span></summary><div class="fields">
     ${rows}
     <button type="button" class="btn" data-cact="add">+ PedalClip hinzufügen</button>
-    <p class="notes" style="margin:0">Schnellhalter für je ein Pedal: Grundplatte mit eingeschraubtem Clip-Einsatz. ${opTxt}
+    <p class="notes" style="margin:0"><b style="color:var(--warn)">Experimentell:</b> Clip-Mechanismus und Passung sind noch nicht an einem echten Druck erprobt – vor dem Serieneinsatz einen Testclip drucken und die Klemmkraft prüfen.
+    Schnellhalter für je ein Pedal: Grundplatte mit eingeschraubtem Clip-Einsatz. ${opTxt}
     Clip im 3D-Modell oder mit „Platzieren“ anklicken – alle möglichen Positionen werden grün markiert, ein Klick setzt ihn dort ab (Raster 5 mm, Esc bricht ab).</p></div>`;
 }
 clipBox.addEventListener('click', e => {
