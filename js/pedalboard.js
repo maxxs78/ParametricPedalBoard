@@ -872,14 +872,23 @@ function plateStrips(G) {
   return null;
 }
 // Schlitzreihe eines Stegs (Draufsicht x,a); versetzte Reihen je nach Steg-Nummer
+// Rückgabe { slots, bridges }: slots sind die Kabelschlitze (für den Ausschnitt), bridges die vollen
+// Stege dazwischen UND an beiden Streifenenden (für den Ausschnitt unverändert, zusätzlich als Grundlage
+// für die verstärkenden Querstreben in plateStrip).
 function slotRow(G, bay, webIdx, a0, a1) {
   const { p } = G, t2 = G.tol / 2;
   const sh = Math.min(p.slotH, a1 - a0 - 12);
-  if (sh < 8) return [];
+  const fL = bay.faceL + t2 + 10, fR = bay.faceR - t2 - 10;
+  if (sh < 8) return { slots: [], bridges: [{ x0: fL, x1: fR }] };
   const ac = (a0 + a1) / 2, r = Math.min(4, sh / 2 - 0.1);
-  const xa = bay.faceL + t2 + 10, xb = bay.faceR - t2 - 10, Lx = xb - xa, bw = p.slotBridge;
-  const out = [];
-  const add = (u, v) => { if (v - u >= Math.max(20, sh)) out.push({ x0: u, x1: v, a0: ac - sh / 2, a1: ac + sh / 2, r }); };
+  const bw = p.slotBridge;
+  // Volle Stege auch an beiden Enden des Streifens (wie zwischen den Schlitzen), statt die Schlitze
+  // bis an die Endkappe/Stütze bzw. den Nachbarstreifen laufen zu lassen – dort wirken beim Handling
+  // und an der Verschraubung die größten Kräfte auf die Platte.
+  const xa = fL + bw, xb = fR - bw, Lx = xb - xa;
+  const slots = [];
+  if (Lx < Math.max(20, sh)) return { slots, bridges: [{ x0: fL, x1: fR }] };
+  const add = (u, v) => { if (v - u >= Math.max(20, sh)) slots.push({ x0: u, x1: v, a0: ac - sh / 2, a1: ac + sh / 2, r }); };
   const nS = Math.max(1, Math.round((Lx + bw) / (p.slotL + bw)));
   if (webIdx % 2 === 0) {
     const sl = (Lx - (nS - 1) * bw) / nS;
@@ -889,7 +898,11 @@ function slotRow(G, bay, webIdx, a0, a1) {
     let x = xa;
     for (let q = 0; q <= nS; q++) { const l = q === 0 || q === nS ? sl / 2 : sl; add(x, x + l); x += l + bw; }
   }
-  return out;
+  const bridges = [];
+  let prev = fL;
+  for (const s of slots) { bridges.push({ x0: prev, x1: s.x0 }); prev = s.x1; }
+  bridges.push({ x0: prev, x1: fR });
+  return { slots, bridges };
 }
 const slotCS = sl => rect(sl.x0, sl.a0, sl.x1, sl.a1).offset(-sl.r, 'Round', 2, 32).offset(sl.r, 'Round', 2, 32);
 // alle Schlitze (für Zeichnung): Stege zwischen Rippen, ohne die Stoßstege
@@ -898,15 +911,19 @@ function plateSlots(G) {
   const out = [];
   for (const bay of railBays(G)) for (let i = 0; i + 1 < G.rails.length; i++) {
     if (seams.has(i)) continue;
-    out.push(...slotRow(G, bay, i, G.rails[i] + G.w / 2, G.rails[i + 1] - G.w / 2));
+    out.push(...slotRow(G, bay, i, G.rails[i] + G.w / 2, G.rails[i + 1] - G.w / 2).slots);
   }
   return out;
 }
 function plateStrip(G, bay, st, bosses) {
-  const { p, rails, w } = G, t2 = G.tol / 2, pt = p.plateT;
+  const { p, rails, w, h } = G, t2 = G.tol / 2, pt = p.plateT;
   const xa = bay.faceL + t2, xb = bay.faceR - t2;
   const parts = st.rails.map((ri, q) => printedRail(G, bay, bosses[q]).translate([0, rails[ri], 0]));
-  const webs = [], slots = [];
+  const webs = [], slots = [], ribs = [];
+  // Verstärkungsstege: an denselben Stellen wie die Stege zwischen bzw. neben den Kabelschlitzen, aber
+  // von Rippe zu Rippe durchgehend (statt nur in Schlitzhöhe) und tiefer als die Platte selbst – echte
+  // Querstreben, die die Platte gegen Durchbiegen zwischen den Rippen versteifen.
+  const ribH = Math.min(h - 2, Math.max(pt + 2, pt + 6));
   const tailXs = () => {
     const k = Math.max(1, Math.round((xb - xa - 50) / 70) + 1);
     return k === 1 ? [(xa + xb) / 2] : Array.from({ length: k }, (_, q) => xa + 25 + q * (xb - xa - 50) / (k - 1));
@@ -916,8 +933,11 @@ function plateStrip(G, bay, st, bosses) {
     [x - 4.5, m - 1], [x + 4.5, m - 1], [x + 7, m + st.dd], [x - 7, m + st.dd]]))]);
   for (let q = 0; q + 1 < st.rails.length; q++) {
     const i = st.rails[q];
-    webs.push(rect(xa, rails[i] + w / 2 - 0.5, xb, rails[i + 1] - w / 2 + 0.5));
-    slots.push(...slotRow(G, bay, i, rails[i] + w / 2, rails[i + 1] - w / 2));
+    const a0 = rails[i] + w / 2, a1 = rails[i + 1] - w / 2;
+    webs.push(rect(xa, a0 - 0.5, xb, a1 + 0.5));
+    const row = slotRow(G, bay, i, a0, a1);
+    slots.push(...row.slots);
+    for (const br of row.bridges) ribs.push(rect(br.x0, a0, br.x1, a1));
   }
   if (st.seamLo !== null) {
     const i = st.rails[0];
@@ -931,6 +951,8 @@ function plateStrip(G, bay, st, bosses) {
   const sl = csUnion(slots.map(slotCS));
   if (web && sl) web = web.subtract(sl);
   if (web) parts.push(web.extrude(pt).translate([-bay.x0, 0, -pt]));
+  const ribCS = csUnion(ribs);
+  if (ribCS) parts.push(ribCS.extrude(ribH).translate([-bay.x0, 0, -ribH]));
   return union(parts);
 }
 
@@ -1141,7 +1163,7 @@ function clipSites(G, S, pr) {
       let q = 0;
       for (let i = 0; i + 1 < G.rails.length; i++) {
         if (seams.has(i)) continue;
-        for (const sl of slotRow(G, bay, i, G.rails[i] + G.w / 2, G.rails[i + 1] - G.w / 2)) {
+        for (const sl of slotRow(G, bay, i, G.rails[i] + G.w / 2, G.rails[i + 1] - G.w / 2).slots) {
           const ac = (sl.a0 + sl.a1) / 2, idx = q++;
           if (blocked(inAB, ac)) continue;
           const half = pr.insertLen / 2 + sl.r + G.tol;
