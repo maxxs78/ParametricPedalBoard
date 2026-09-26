@@ -973,7 +973,7 @@ async function threeMF(idx) {
   const named = sel.map((pl, k) => {
     const names = [...new Set(pl.items.map(it => result.parts[it.i].name.split(' · ')[0].replace(/ \d+ (links|rechts|Mitte|durchgehend)$/, '').replace(/ \(.*\)$/, '')))];
     const nm = `Platte ${idx[k] + 1}: ${names.slice(0, 2).join(', ')}${names.length > 2 ? ' …' : ''}`;
-    return { name: nm, items: pl.items.map(it => ({ part: it.i, rot: it.rot, tx: it.tx + dx, ty: it.ty + dy })) };
+    return { name: nm, items: pl.items.map(it => ({ part: it.i, rot: it.rot, tx: it.tx + dx, ty: it.ty + dy, w: it.w, h: it.h })) };
   });
   const thumbs = [];
   for (const pl of sel) thumbs.push(await plateThumbs(pl));

@@ -13,9 +13,17 @@
 // zusammen mit der Filamentliste in Metadata/project_settings.config (geprüft anhand eines von Bambu Studio
 // exportierten Referenz-3MF). <basematerials>/pid/pindex bleibt zusätzlich gesetzt, als Fallback für Slicer
 // ohne Plattenverwaltung (PrusaSlicer, Cura), die den 3MF-Kern direkt lesen.
+//
+// Production Extension (p:UUID): echte Bambu-Studio-3MF setzen auf jedem <object>, <component>, <item> und
+// <build> ein p:UUID (xmlns:p + requiredextensions="p" im <model>-Wurzelelement) – in zwei Referenzdateien
+// (Bambu-Studio-Export und ein explizit für Anycubic Slicer Next exportiertes Projekt) durchgängig vorhanden.
+//
+// Metadata/plate_N.json: je Platte eine Bounding-Box (bbox_all/bbox_objects) – in den Referenzdateien nur
+// für einzelne Platten vorhanden (wohl ein Wiederöffnen-Cache), wir erzeugen sie sicherheitshalber für alle.
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const n6 = v => +(+v).toFixed(6);
+const uuid = () => crypto.randomUUID();
 
 // Raster wie in Bambu Studio / OrcaSlicer (PartPlateList::compute_colum_count, LOGICAL_PART_PLATE_GAP = 1/5)
 export function plateColumns(count) {
@@ -45,7 +53,7 @@ export function build3MF(plates, parts, opts) {
     const v = [], t = [];
     for (let q = 0; q < P.length; q += 3) v.push(`<vertex x="${+P[q].toFixed(4)}" y="${+P[q + 1].toFixed(4)}" z="${+P[q + 2].toFixed(4)}"/>`);
     for (let q = 0; q < I.length; q += 3) t.push(`<triangle v1="${I[q]}" v2="${I[q + 1]}" v3="${I[q + 2]}"/>`);
-    return `<object id="${oid}" type="model" pid="1" pindex="${pindex}"><mesh><vertices>${v.join('')}</vertices><triangles>${t.join('')}</triangles></mesh></object>`;
+    return `<object id="${oid}" p:UUID="${uuid()}" type="model" pid="1" pindex="${pindex}"><mesh><vertices>${v.join('')}</vertices><triangles>${t.join('')}</triangles></mesh></object>`;
   };
   const partCfg = (pid, name, extruder) => `  <part id="${pid}" subtype="normal_part">
       <metadata key="name" value="${esc(name)}"/>
@@ -62,7 +70,7 @@ export function build3MF(plates, parts, opts) {
     const comps = [[a1, pt.name, bodyEx]];
     if (pt.inlay) { const textEx = roles.indexOf('text') + 1; const a2 = id++; objs.push(meshObj(a2, pt.inlay, roles.indexOf('text'))); comps.push([a2, `${pt.name} – Schriftzug`, textEx]); }
     const oid = id++;
-    objs.push(`<object id="${oid}" name="${esc(pt.name)}" type="model"><components>${comps.map(([c]) => `<component objectid="${c}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>`).join('')}</components></object>`);
+    objs.push(`<object id="${oid}" p:UUID="${uuid()}" name="${esc(pt.name)}" type="model"><components>${comps.map(([c]) => `<component objectid="${c}" p:UUID="${uuid()}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>`).join('')}</components></object>`);
     cfgObjs.push(`  <object id="${oid}">
     <metadata key="name" value="${esc(pt.name)}"/>
     <metadata key="extruder" value="${bodyEx}"/>
@@ -73,14 +81,23 @@ export function build3MF(plates, parts, opts) {
 
   // Build: Instanzen in Plattenreihenfolge; instance_id zählt je Objekt in Build-Reihenfolge
   const items = [], cfgPlates = [], instCount = new Map();
+  const plateJsons = [];
   let ident = 1000;
   plates.forEach((pl, j) => {
     const [ox, oy] = plateOrigin(j, plates.length, opts.bedX, opts.bedY);
     const inst = [];
-    for (const it of pl.items) {
+    let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity, firstExtruder = 0;
+    const bboxObjects = [];
+    pl.items.forEach((it, idx) => {
       const oid = ref.get(it.part);
+      const pt = parts[it.part];
+      if (idx === 0) firstExtruder = roles.indexOf(pt.role);
+      const x0 = ox + it.tx - it.w / 2, x1 = ox + it.tx + it.w / 2;
+      const y0 = oy + it.ty - it.h / 2, y1 = oy + it.ty + it.h / 2;
+      bx0 = Math.min(bx0, x0); bx1 = Math.max(bx1, x1); by0 = Math.min(by0, y0); by1 = Math.max(by1, y1);
+      bboxObjects.push({ area: n6(it.w * it.h), bbox: [n6(x0), n6(y0), n6(x1), n6(y1)], id: oid, layer_height: 0.2, name: pt.name });
       const r = it.rot * Math.PI / 180, c = n6(Math.cos(r)), s = n6(Math.sin(r));
-      items.push(`<item objectid="${oid}" transform="${c} ${s} 0 ${-s} ${c} 0 0 0 1 ${n6(ox + it.tx)} ${n6(oy + it.ty)} 0" printable="1"/>`);
+      items.push(`<item objectid="${oid}" p:UUID="${uuid()}" transform="${c} ${s} 0 ${-s} ${c} 0 0 0 1 ${n6(ox + it.tx)} ${n6(oy + it.ty)} 0" printable="1"/>`);
       const k = instCount.get(oid) || 0;
       instCount.set(oid, k + 1);
       inst.push(`    <model_instance>
@@ -88,7 +105,7 @@ export function build3MF(plates, parts, opts) {
       <metadata key="instance_id" value="${k}"/>
       <metadata key="identify_id" value="${ident++}"/>
     </model_instance>`);
-    }
+    });
     const th = opts.thumbs && opts.thumbs[j];
     cfgPlates.push(`  <plate>
     <metadata key="plater_id" value="${j + 1}"/>
@@ -98,11 +115,22 @@ export function build3MF(plates, parts, opts) {
     <metadata key="top_file" value="Metadata/top_${j + 1}.png"/>` : ''}
 ${inst.join('\n')}
   </plate>`);
+    plateJsons.push(JSON.stringify({
+      bbox_all: pl.items.length ? [n6(bx0), n6(by0), n6(bx1), n6(by1)] : [0, 0, 0, 0],
+      bbox_objects: bboxObjects,
+      bed_type: 'textured_plate',
+      filament_colors: [],
+      filament_ids: [],
+      first_extruder: firstExtruder,
+      is_seq_print: false,
+      nozzle_diameter: 0.4,
+      version: 2,
+    }));
   });
 
   const date = new Date().toISOString().slice(0, 10);
   const model = `<?xml version="1.0" encoding="UTF-8"?>
-<model unit="millimeter" xml:lang="de-DE" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+<model unit="millimeter" xml:lang="de-DE" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06" requiredextensions="p">
  <metadata name="Application">BambuStudio-02.00.00.00</metadata>
  <metadata name="BambuStudio:3mfVersion">1</metadata>
  <metadata name="Title">${esc(opts.title || '')}</metadata>
@@ -113,7 +141,7 @@ ${inst.join('\n')}
   <basematerials id="1">${roles.map(r => `<base name="${r}" displaycolor="${(colors[r] || '#ffffff').toUpperCase()}FF"/>`).join('')}</basematerials>
   ${objs.join('\n  ')}
  </resources>
- <build>
+ <build p:UUID="${uuid()}">
   ${items.join('\n  ')}
  </build>
 </model>`;
@@ -139,6 +167,7 @@ ${cfgPlates.join('\n')}
  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
  <Default Extension="png" ContentType="image/png"/>
  <Default Extension="config" ContentType="text/xml"/>
+ <Default Extension="json" ContentType="application/json"/>
 </Types>`,
     '_rels/.rels': `<?xml version="1.0" encoding="UTF-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -149,6 +178,7 @@ ${cfgPlates.join('\n')}
     'Metadata/model_settings.config': config,
     'Metadata/project_settings.config': projectSettings,
   };
+  plateJsons.forEach((pj, j) => { files[`Metadata/plate_${j + 1}.json`] = pj; });
   (opts.thumbs || []).forEach((th, j) => {
     if (!th) return;
     files[`Metadata/plate_${j + 1}.png`] = th.plate;
