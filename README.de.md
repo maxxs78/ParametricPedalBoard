@@ -2,6 +2,8 @@
 
 # Parametric Pedal Board
 
+**[▶ Live-Konfigurator öffnen](https://maxxs78.github.io/ParametricPedalBoard/)**
+
 Browserbasierter Generator für 3D-druckbare Gitarren-Pedalboards im Stil von Rockboard, ModBoard und Co. Du stellst die Maße ein und prüfst live, ob alle Teile aufs Druckbett passen. Danach exportierst du die STL-Dateien samt Stückliste.
 
 ## Starten
