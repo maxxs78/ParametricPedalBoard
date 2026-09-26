@@ -15,14 +15,42 @@ const FONTS = [
   ['permanent-marker', 'Permanent Marker'],
 ];
 const hasText = p => p.back && String(p.text || '').trim() !== '';
+// Bett-/Bauraumgrößen gängiger aktueller Drucker (Stand 2026), gruppiert nach Hersteller
+const PRINTER_BEDS = {
+  'bambu-a1mini': { brand: 'Bambu Lab', name: 'A1 mini', x: 180, y: 180, z: 180 },
+  'bambu-a1': { brand: 'Bambu Lab', name: 'A1', x: 256, y: 256, z: 256 },
+  'bambu-p1s': { brand: 'Bambu Lab', name: 'P1S', x: 256, y: 256, z: 256 },
+  'bambu-p2s': { brand: 'Bambu Lab', name: 'P2S', x: 256, y: 256, z: 256 },
+  'bambu-x2d': { brand: 'Bambu Lab', name: 'X2D', x: 256, y: 256, z: 260 },
+  'bambu-a2l': { brand: 'Bambu Lab', name: 'A2L', x: 330, y: 320, z: 325 },
+  'bambu-h2c': { brand: 'Bambu Lab', name: 'H2C', x: 325, y: 320, z: 320 },
+  'bambu-h2d': { brand: 'Bambu Lab', name: 'H2D', x: 325, y: 320, z: 325 },
+  'bambu-h2s': { brand: 'Bambu Lab', name: 'H2S', x: 340, y: 320, z: 340 },
+  'prusa-mini': { brand: 'Prusa', name: 'MINI+', x: 180, y: 180, z: 180 },
+  'prusa-mk4s': { brand: 'Prusa', name: 'MK4S', x: 250, y: 210, z: 220 },
+  'prusa-coreone': { brand: 'Prusa', name: 'CORE One+', x: 250, y: 220, z: 270 },
+  'prusa-coreonel': { brand: 'Prusa', name: 'CORE One L+', x: 300, y: 300, z: 330 },
+  'prusa-xl': { brand: 'Prusa', name: 'XL+', x: 360, y: 360, z: 360 },
+  'anycubic-kobras1': { brand: 'Anycubic', name: 'Kobra S1', x: 250, y: 250, z: 250 },
+  'anycubic-kobra3': { brand: 'Anycubic', name: 'Kobra 3', x: 250, y: 250, z: 260 },
+  'anycubic-kobrax': { brand: 'Anycubic', name: 'Kobra X', x: 260, y: 260, z: 260 },
+  'anycubic-kobra4': { brand: 'Anycubic', name: 'Kobra 4', x: 260, y: 260, z: 260 },
+  'anycubic-kobras1max': { brand: 'Anycubic', name: 'Kobra S1 Max', x: 350, y: 350, z: 350 },
+  'anycubic-kobra3max': { brand: 'Anycubic', name: 'Kobra 3 Max', x: 420, y: 420, z: 500 },
+};
 const GROUPS = [
   { title: 'Drucker-Bauraum', open: true, fields: [
-    { id: 'bedX', label: 'Bett X', unit: 'mm', min: 100, max: 1000, step: 1 },
-    { id: 'bedY', label: 'Bett Y', unit: 'mm', min: 100, max: 1000, step: 1 },
+    { id: 'printerPreset', label: 'Drucker-Vorlage', type: 'select', options: [
+      ['', 'Eigene Eingabe'],
+      ...Object.entries(PRINTER_BEDS).map(([k, d]) => [k, `${d.brand} · ${d.name} (${d.x}×${d.y}×${d.z})`]),
+    ] },
+    { id: 'bedX', label: 'Bauraum X', hint: 'max. Größe einer Druckplatte', unit: 'mm', min: 100, max: 1000, step: 1 },
+    { id: 'bedY', label: 'Bauraum Y', hint: 'max. Größe einer Druckplatte', unit: 'mm', min: 100, max: 1000, step: 1 },
     { id: 'bedZ', label: 'Höhe Z', unit: 'mm', min: 30, max: 1000, step: 1 },
     { id: 'bedMargin', label: 'Randabstand', hint: 'für Skirt/Brim', unit: 'mm', min: 0, max: 30, step: 1 },
-    { id: 'slicerX', label: 'Bett im Slicer X', hint: 'Druckerbett im Slicer, für die Platten in der 3MF; 0 = wie Bett X', unit: 'mm', min: 0, max: 2000, step: 1 },
-    { id: 'slicerY', label: 'Bett im Slicer Y', hint: '0 = wie Bett Y', unit: 'mm', min: 0, max: 2000, step: 1 },
+    { id: 'slicerDiffers', label: 'Mein Druckerbett ist größer', hint: 'nur für die 3MF-Datei: Platten mittig auf dem echten Bett platzieren, statt auf dem Bauraum oben', type: 'check' },
+    { id: 'slicerX', label: 'Echtes Druckerbett X', hint: 'Bettgröße in deinem Slicer', unit: 'mm', min: 0, max: 2000, step: 1, show: p => p.slicerDiffers },
+    { id: 'slicerY', label: 'Echtes Druckerbett Y', hint: 'Bettgröße in deinem Slicer', unit: 'mm', min: 0, max: 2000, step: 1, show: p => p.slicerDiffers },
   ] },
   { title: 'Board', open: true, fields: [
     { id: 'W', label: 'Breite', hint: 'außen, links–rechts', unit: 'mm', min: 200, max: 1500, step: 5 },
@@ -116,10 +144,11 @@ const PRESETS = [
 
 // ------------------------------------------------------------------ Zustand
 const STORE = 'pedalboard-config-v2';
-const fresh = () => ({ ...DEFAULTS, clips: [] });
+const fresh = () => ({ ...DEFAULTS, clips: [], printerPreset: '' });
 let params = fresh();
 try { Object.assign(params, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) { /* ohne Speicher */ }
 if (!Array.isArray(params.clips)) params.clips = [];
+if (params.slicerDiffers === undefined) params.slicerDiffers = !!(params.slicerX || params.slicerY);
 let clipSel = -1;                                 // ausgewählter PedalClip (Positionen werden markiert)
 let result = null;
 let selected = -1;
@@ -184,6 +213,19 @@ function onInput(e) {
     params[id] = Math.min(f.max, Math.max(f.min, v));
   }
   if (id === 'tiers' && params.tiers > 1 && params.mode === 'plate') params.mode = 'print';
+  if (id === 'printerPreset' && params.printerPreset) {
+    const pr = PRINTER_BEDS[params.printerPreset];
+    params.bedX = pr.x; params.bedY = pr.y; params.bedZ = pr.z;
+    params.slicerDiffers = false; params.slicerX = 0; params.slicerY = 0;
+  }
+  if (['bedX', 'bedY', 'bedZ'].includes(id) && params.printerPreset) {
+    const pr = PRINTER_BEDS[params.printerPreset];
+    if (pr.x !== params.bedX || pr.y !== params.bedY || pr.z !== params.bedZ) params.printerPreset = '';
+  }
+  if (id === 'slicerDiffers') {
+    if (params.slicerDiffers) { if (!params.slicerX) params.slicerX = params.bedX; if (!params.slicerY) params.slicerY = params.bedY; }
+    else { params.slicerX = 0; params.slicerY = 0; }
+  }
   changed();
 }
 function changed() {
@@ -547,13 +589,16 @@ function packPlates() {
   plates = [];
   if (!result) return;
   const mg = params.bedMargin, W = params.bedX - 2 * mg, H = params.bedY - 2 * mg, gap = 6;
-  const items = [];
+  // je Farbrolle (partRole) getrennt packen, damit nie zwei Farben auf derselben Platte landen
+  // (vermeidet unnoetige Filamentwechsel beim Ein-Filament-Druck)
+  const byRole = new Map();
   result.parts.forEach((pt, i) => {
     if (!pt.fit.ok) return;
     const bb = meshBox(pt.mesh);
-    for (let c = 0; c < pt.qty; c++) items.push({ i, c, ...bb });
+    const role = partRole(pt);
+    if (!byRole.has(role)) byRole.set(role, []);
+    for (let c = 0; c < pt.qty; c++) byRole.get(role).push({ i, c, ...bb });
   });
-  items.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.w * b.h - a.w * a.h);
   const place = (pl, it, x, y, w, h, rot) => {
     // Mittelpunkt der Grundfläche nach Drehung auf (x + w/2, y + h/2) legen
     const [cx, cy] = rot ? [-it.cy, it.cx] : [it.cx, it.cy];
@@ -575,14 +620,19 @@ function packPlates() {
     }
     return false;
   };
-  for (const it of items) {
-    if (plates.some(pl => tryPlace(pl, it))) continue;
-    const pl = { shelves: [], items: [], usedH: 0, area: 0 };
-    plates.push(pl);
-    if (!tryPlace(pl, it)) {                              // diagonal liegendes Teil: mittig auf eigene Platte
-      pl.items.push({ i: it.i, rot: 0, tx: params.bedX / 2 - it.cx, ty: params.bedY / 2 - it.cy, w: it.w, h: it.h });
-      pl.area += it.w * it.h; pl.usedH = H;
+  for (const items of byRole.values()) {
+    items.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h) || b.w * b.h - a.w * a.h);
+    const rolePlates = [];
+    for (const it of items) {
+      if (rolePlates.some(pl => tryPlace(pl, it))) continue;
+      const pl = { shelves: [], items: [], usedH: 0, area: 0 };
+      rolePlates.push(pl);
+      if (!tryPlace(pl, it)) {                              // diagonal liegendes Teil: mittig auf eigene Platte
+        pl.items.push({ i: it.i, rot: 0, tx: params.bedX / 2 - it.cx, ty: params.bedY / 2 - it.cy, w: it.w, h: it.h });
+        pl.area += it.w * it.h; pl.usedH = H;
+      }
     }
+    plates.push(...rolePlates);
   }
 }
 // Teile einer Platte als three.js-Objekte (Platte an ox, oy)
@@ -658,7 +708,10 @@ function updateHud() {
   if (viewMode === 'plates') {
     const n = plates.length;
     dim.textContent = plateSel !== null ? `Druckplatte ${plateSel + 1} von ${n}` : `${n} Druckplatte${n === 1 ? '' : 'n'}`;
-    sub.textContent = `${params.bedX} × ${params.bedY} mm, Randabstand ${params.bedMargin} mm · Anordnung wie im 3MF-Export`;
+    const [sx, sy] = slicerBed();
+    const exportNote = params.slicerDiffers && (sx !== params.bedX || sy !== params.bedY)
+      ? ` · in der 3MF mittig auf ${fmt(sx)} × ${fmt(sy)} mm Druckerbett platziert` : '';
+    sub.textContent = `${params.bedX} × ${params.bedY} mm, Randabstand ${params.bedMargin} mm · Anordnung wie im 3MF-Export${exportNote}`;
     leg.innerHTML = '<span><i style="background:#a7afb7"></i>Druckbett</span><span><i style="border:1px dashed #adb5bd"></i>nutzbare Fläche</span>';
     return;
   }
@@ -852,7 +905,7 @@ function renderPlates() {
     <button type="button" class="btn primary" id="plates-3mf">Alle Platten als eine 3MF</button>
     <button type="button" class="btn" id="plates-zip">Einzeln als ZIP</button>
     <span class="notes">Eine 3MF mit ${plates.length} Platte${plates.length === 1 ? '' : 'n'} für OrcaSlicer, Bambu Studio und darauf basierende Slicer (z. B. Anycubic Slicer Next): Plattenaufteilung, Plattennamen, Vorschaubilder, Schrift-Einlage als Filament 2.
-    Die Platten werden mit ${slicerBed().join(' × ')} mm gerastert – das muss dem Druckerbett im Slicer entsprechen (einstellbar unter „Drucker-Bauraum“ → „Bett im Slicer“), sonst liegen die Teile neben den Platten.
+    Die Platten werden mit ${slicerBed().join(' × ')} mm gerastert – das muss dem Druckerbett im Slicer entsprechen (einstellbar unter „Drucker-Bauraum“ → „Mein Druckerbett ist größer“), sonst liegen die Teile neben den Platten.
     „Einzeln als ZIP“: je Platte eine eigene 3MF, für PrusaSlicer, Cura und andere Slicer ohne Plattenverwaltung.</span></div>
     <div class="tablewrap"><table><thead><tr><th class="n">Platte</th><th>Inhalt</th><th class="n">Belegung</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }

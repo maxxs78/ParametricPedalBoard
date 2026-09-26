@@ -79,7 +79,7 @@ export const PROFILES = {
 
 export const DEFAULTS = {
   mode: 'print',
-  bedX: 220, bedY: 220, bedZ: 250, bedMargin: 5, slicerX: 0, slicerY: 0,
+  bedX: 220, bedY: 220, bedZ: 250, bedMargin: 5, slicerDiffers: false, slicerX: 0, slicerY: 0,
   W: 600, D: 300, hF: 32, hB: 100,
   tiers: 1, psuTier: 1,
   tier2D: 220, tier2StepH: 35, tier2Hb: 150, tier2Rails: 2,
