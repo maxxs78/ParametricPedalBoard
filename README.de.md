@@ -144,3 +144,9 @@ await initGeometry();
 const r = generate({ mode: 'alu', W: 600, D: 300, bedX: 220, bedY: 220 });
 // r.parts[i].mesh = { positions, indices } in Druckrichtung, r.bom, r.errors, r.warnings
 ```
+
+## Lizenz
+
+Dieses Projekt steht unter der [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). Wer eine veränderte Version dieses Konfigurators als öffentlichen Webdienst betreibt, muss den Quellcode seiner Änderungen den Nutzern zugänglich machen.
+
+Eingebundene Abhängigkeiten behalten ihre eigene Lizenz: [Three.js](https://threejs.org/) (MIT), [JSZip](https://stuk.github.io/jszip/) (MIT/GPLv3) und [manifold-3d](lib/LICENSE-manifold) (Apache-2.0).

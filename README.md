@@ -144,3 +144,9 @@ await initGeometry();
 const r = generate({ mode: 'alu', W: 600, D: 300, bedX: 220, bedY: 220 });
 // r.parts[i].mesh = { positions, indices } in print orientation, r.bom, r.errors, r.warnings
 ```
+
+## License
+
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). If you run a modified version of this configurator as a public web service, you must make the source of your modifications available to its users.
+
+Bundled dependencies keep their own licenses: [Three.js](https://threejs.org/) (MIT), [JSZip](https://stuk.github.io/jszip/) (MIT/GPLv3), and [manifold-3d](lib/LICENSE-manifold) (Apache-2.0).
