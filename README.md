@@ -1,0 +1,128 @@
+# Parametric Pedal Board
+
+Browserbasierter Generator für 3D-druckbare Gitarren-Pedalboards im Stil von Rockboard, ModBoard und Co. Du stellst die Maße ein und prüfst live, ob alle Teile aufs Druckbett passen. Danach exportierst du die STL-Dateien samt Stückliste.
+
+## Starten
+
+ES-Module und WebAssembly laufen nicht über `file://`. Deshalb braucht der Konfigurator einen kleinen lokalen Webserver:
+
+```bat
+start.bat
+```
+
+Alternativ `python -m http.server 8123` im Projektordner ausführen und dann http://localhost:8123 öffnen. Three.js und JSZip kommen aus dem CDN. Der Geometrie-Kern (manifold-3d) liegt lokal in `lib/`.
+
+## Wie solche Boards aufgebaut sind
+
+| Vorbild | Aufbau | Übernommene Features |
+|---|---|---|
+| Rockboard (kommerziell) | Alu-Rahmen, geneigt, Querstreben mit Lücken | Neigung, Kabellücken zwischen den Schienen, Netzteil unter dem Board, Gummifüße, Klettband |
+| ModBoard Lite/Ultra (Hardwire Design) | 20er-Nutprofile als Schienen, gedruckte Seitenteile | Variante B: Profile 2020/2040/3030/4040, Befestigung über Kernbohrung und Nutensteine |
+| Modular Pedalboard (Erasing), FunkyCN u. a. | vollständig gedruckt, modular aus Segmenten | Variante A: Schienen werden an Zwischenstützen gestoßen, damit jedes Segment aufs Bett passt |
+
+## Aufbau des generierten Boards
+
+- **Endkappen links/rechts**: Keilförmige Seitenteile mit Taschen, in denen die Schienen stecken. Verschraubt wird von außen durch eine Senkung, bei Alu in die Kernbohrung (Gewinde schneiden).
+- **Stützen**: Zwischenfüße, sobald die Spannweite überschritten ist oder die Schienen zu lang für das Bett wären. Die Schienen werden von unten verschraubt, bei Alu über Nutensteine in der unteren Nut. Das Feld für das Netzteil wird bei Bedarf automatisch verbreitert.
+- **Biegung (optional, nur Bauart A/C)**: Das Board knickt an jeder Stütze um denselben Winkel ab – symmetrisch um die Board-Mitte, konkav zum Musiker. Die Vorderkante (dem Musiker zugewandt) bleibt dabei nahezu auf einer Linie, die Rückwand-Seite fächert nach hinten auf; es entsteht ein flacher Kreisbogen, wie er vor dem Musiker auf dem Boden liegt.
+  - Nur bei durchgehend gedruckten Schienen bzw. Platten-Rippen möglich; ein durchgehendes Alu-Profil (Bauart B) kann sich nicht biegen.
+  - Die **Stützen werden zum Keil** (wie eine Gehrung): Beide Stützen-Hälften sind je um den halben Winkel gegeneinander gedreht und zu einem Vollkörper vereinigt. Jede Außenfläche steht so samt Schwalbenschwanz-Tasche, Schrauben und Bohrungen rechtwinklig zu den Schienen ihres Feldes. Nach vorne bleibt die Stütze so dick wie eingestellt, nach hinten wird sie dicker. Gedruckt wird sie auf einer Keilfläche liegend.
+  - Konkav (positiver Winkel) sind bis zu 20° je Stütze möglich. Konvex (negativer Winkel) wird die Stütze nach hinten dünner; dann begrenzt der Generator den Winkel, damit sich die Taschen der hintersten Schiene nicht berühren (mehr geht mit einer dickeren Stütze).
+  - Schienen, Platten, Streben, Netzteilhalter und Endkappen bleiben dieselben Druckteile wie ungebogen. Die technische Zeichnung zeigt weiterhin die abgewickelte (ungebogene) Form, mit einem Hinweis auf den Biegewinkel im Schriftfeld.
+- **Leichtbau-Fenster (optional)**: Aussparungen in Endkappen und Stützen, mit verrundeten Ecken.
+  - Randabstand und Stegbreite sind einzeln einstellbar. Die Fenster reichen dadurch bis dicht an die Außenkante, auch in den vorderen (niedrigen) Bereich der Endkappen.
+  - Um die Schienentaschen, Strebentaschen, Gummifüße und Rückwand-Schrauben bleibt automatisch die volle Wandstärke stehen, senkrechte Pfosten stützen jede Schiene, breite Felder bekommen eine diagonale Rippe, und jedes große, noch annähernd rechteckige Fenster wird zusätzlich durch eine Diagonalstrebe (unten hinten → oben vorne) ausgesteift – die Teile bleiben so trotz weniger Material stabil.
+- **Schienen**: immer schwarz dargestellt.
+  - A: gedrucktes U-Profil, Druck mit der Oberseite nach unten. Optional mit **Schwalbenschwanz** (Flankenwinkel einstellbar):
+    - Die Schienenenden haben Zapfen, die sich nach innen aufweiten. Sie werden von oben in passende Taschen der Endkappen und Stützen gesetzt und von unten verschraubt.
+    - In den Stützen ist die Tasche doppelt, eine Hälfte für jedes angrenzende Schienenstück.
+  - B: Nutprofil 2020/2040/3030/4040, schwarz eloxiert.
+  - C: **geschlitzte Druckplatte** nach Art der Rockboard-Oberfläche.
+    - Unter der Platte laufen Rippen. Das sind die gedruckten Schienen aus A mit ihren Schwalbenschwanz-Zapfen.
+    - Zwischen den Rippen liegen Stege (Plattendicke einstellbar) mit je einer Reihe verrundeter Kabelschlitze, von Reihe zu Reihe versetzt.
+    - Die Platte wird je Feld und bei Bedarf quer zur Neigung in Streifen geteilt, passend zum Druckbett.
+    - Benachbarte Streifen greifen mit Puzzle-Schwalbenschwänzen ineinander. Dieser Stoßsteg hat keine Schlitze.
+- **Mehrteilige Seitenteile werden verschraubt**:
+  - Große Schwalbenschwänze (bis 32 mm hoch, 13 mm tief) richten die Stücke aus.
+  - Eine gedruckte Verbindungslasche sitzt versenkt auf der Innenseite und wird mit Linsenkopfschrauben M4 (ISO 7380) verschraubt.
+  - Die Muttern liegen in Sechskant-Taschen auf der Außenseite.
+- **Streben (optional, 1–2 Stück)**: Sie laufen längs unter dem Board, stecken von unten in Taschen der Endkappen und Stützen und werden von unten verschraubt.
+  - A: gedruckte Flachstäbe (Breite und Höhe einstellbar), je Feld ein Stück mit Senkung für den Schraubenkopf.
+  - B: handelsüblicher Alu-Flachstab 20×5 mm mit Senkkopfschrauben. Die Bohrpositionen stehen in der Stückliste.
+  - Die Position wird automatisch gewählt. Dabei weichen die Streben aus: Netzteilen, Gummifüßen, den Schraubzugängen der Stützen und den Verbindungslaschen.
+- **Rückwand (optional)**:
+  - Platte über die ganze Breite, von hinten an Endkappen und Stützen geschraubt.
+  - Hinter jeder Netzteilbox gibt es eine großzügige Aussparung mit verrundeten Ecken für die Anschlüsse.
+  - Geteilt wird **nur hinter den Stützen**, wo jedes Teil verschraubt ist. Die Feldbreite wird so gewählt, dass jedes Rückwandteil aufs Bett passt.
+  - **Schriftzug (optional)**:
+    - Bis zu 3 Zeilen in wählbarer Schriftart: Metal Mania, New Rocker, Pirata One, UnifrakturMaguntia, Black Ops One, Creepster, Bebas Neue, Russo One, Bungee, Orbitron oder Permanent Marker.
+    - Versenkt oder erhaben, Tiefe/Höhe einstellbar.
+    - Der Schriftzug sitzt im breitesten freien Bereich neben Aussparungen und Schrauben und wird bei Bedarf verkleinert.
+    - „Farbig hervorheben“ erzeugt die Schrift als eigenen Körper. Im 3MF ist sie ein Teil desselben Objekts mit eigener Farbe, beim STL-Export eine eigene Datei.
+    - Versenkte Schrift wird auf der Druckbett-Seite gedruckt, erhabene Schrift oben (dann geht auch ein Filamentwechsel).
+- **Netzteil / Batteriebox** (1–4 Stück, jedes in einem eigenen Feld), wahlweise als
+  - **Box**: zwei Hälften aus Seitenwange, Vorderwand, Boden mit Lüftungsschlitzen und Deckplatte.
+  - **Haltebügel**: zwei Wangen mit Auflage, Vorderlippe und Deckplatte.
+
+  Für beide Varianten gilt:
+  - Die Box sitzt so weit hinten, dass ihre offene Rückseite 2 mm vor der Rückwandebene endet (einstellbar), auch ohne Rückwand.
+  - Die **Rückseite ist komplett offen** für die Anschlüsse. Das Netzteil wird von hinten eingeschoben und mit einem Klettkabelbinder gesichert.
+  - Wandstärke einstellbar (Standard 5 mm), Deckplatte 8 mm. Die Schraubenköpfe liegen versenkt, damit das Netzteil flach anliegt.
+  - Gedruckt wird auf der Seitenwange liegend, alle Wände stehen senkrecht. Stützmaterial ist nicht nötig.
+- **PedalClips (optional, beliebig viele)**: Schnellhalter für je ein Pedal, bestehend aus zwei Druckteilen:
+  - **Grundplatte** in Gehäusegröße (Mini, 1590A, 1590B, 125B, Boss Kompakt, 1590BB, 1590DD oder eigene Maße), wahlweise quer. Das Pedal wird mit Klettband (Hakenseite) oder Dual Lock aufgeklebt.
+  - **Clip-Einsatz**, von oben mit Senkkopfschrauben 4×12 in eine Tasche der Grundplatte geschraubt. Er ist ein flach liegend gedrucktes Profil; Federzungen und Riegel biegen sich dadurch in der Schichtebene.
+  - Der Einsatz greift bei A/B in die Kabellücke zwischen zwei Schienen (hält unter der Schienen-Unterkante), bei C in einen Kabelschlitz (hält unter dem Plattensteg). Seine Maße passen sich automatisch an Lückenbreite, Schienenhöhe bzw. Plattendicke an.
+  - Zwei Mechanismen zur Auswahl:
+    - **Federclip**: zwei hochstehende Federzungen mit Rastnase. Pedal aufsetzen und andrücken, bis es einrastet; zum Abnehmen kräftig abziehen.
+    - **Bajonett**: quadratischer Hals mit Querriegel. Pedal quer halten, Riegel längs in die Öffnung stecken und um 90° drehen. Rastnocken fallen in den Hohlraum der gedruckten Schiene bzw. in die untere Nut des Alu-Profils.
+  - **Platzieren**: Clip im 3D-Modell (oder in der Liste mit „Platzieren“) anklicken. Alle möglichen Positionen werden grün markiert, ein Klick setzt den Clip dort ab (Raster 5 mm, Esc bricht ab). Nicht platzierte Clips liegen vor dem Board.
+  - Ausgeschlossen werden Öffnungen, unter denen ein Netzteil, eine Strebe oder zu wenig Bodenfreiheit ist. Überlappende Clips, Clips über der Board-Kante und (beim gebogenen Board) über einer Knickstelle meldet die Prüfung.
+- **Normteile im 3D-Modell**: Schrauben, Muttern und Nutensteine werden dargestellt. Sie lassen sich ein- und ausblenden und bewegen sich in der Explosionsansicht mit.
+
+## Technische Zeichnung
+
+Der Tab „Zeichnung“ erzeugt ein A3-Blatt nach Projektionsmethode 1 mit folgendem Inhalt:
+- Vorderansicht, Seitenansicht von links und Draufsicht mit Hauptmaßen, Stützenabständen, Neigungswinkel und Schienenteilung
+- verdeckte Taschen, Teilungsfugen, Verbindungslaschen und Netzteil
+- Schnitt durch die Schiene
+- Stücklisten für Druckteile und Zukaufteile
+- Schriftfeld mit Maßstab
+
+Export als SVG oder über „Drucken / als PDF“. Die ZIP-Datei enthält die Zeichnung ebenfalls.
+
+## Darstellung
+
+- **Farbschemata:** Hellfire, Toxic, High Voltage, Purple Haze, Cyber, Punk, Chrome & Blut, Goldtop und Stealth.
+- **Eigene Farben:** Jede Farbe ist einzeln einstellbar: Druckteile, Schienen/Profile/Platte, Streben, Rückwand, Schriftzug, Normteile und Netzteil.
+- **Transparent-Modus:** Die Deckkraft ist einstellbar. Schrauben, Muttern und Nutensteine bleiben deckend und sind so im Inneren sichtbar.
+- **Speicherung:** Die Einstellungen bleiben im Browser gespeichert.
+
+## Druckplatten und 3MF
+
+Der Tab „Druckplatten“ verteilt alle Druckteile automatisch auf Platten in der eingestellten Bettgröße, gedreht wo es Platz spart. In der 3D-Ansicht siehst du alle Platten im Raster oder eine einzelne.
+
+**„Alle Platten als eine 3MF“** schreibt alle Platten in **eine einzige .3mf-Datei** (kein ZIP). Einzelne Platten lassen sich genauso exportieren; das Gesamt-ZIP enthält die Datei ebenfalls.
+- **OrcaSlicer und Bambu Studio** (und deren Ableger) übernehmen die Plattenaufteilung, Plattennamen („Platte 3: Endkappe, Stütze“) und je Platte ein Vorschaubild (Schräg- und Draufsicht). Die farbig hervorgehobene Schrift-Einlage ist dort als eigenes Teil Filament 2 zugeordnet.
+- Die Plattendaten stehen in `Metadata/model_settings.config`, die Teile im Plattenraster dieser Slicer (Spalten = ⌈√n⌉, 20 % Abstand). Damit sie ausgewertet werden, trägt die Datei die Kennung „BambuStudio-02.00.00.00“ im Kopf.
+- **Wichtig:** Diese Slicer ordnen die Teile beim Öffnen anhand ihrer Position den Platten zu und rastern die Platten mit dem Bett des *im Slicer gewählten* Druckers. Ist das größer als das Bett im Konfigurator (z. B. 250 statt 220 mm), unter „Drucker-Bauraum“ → „Bett im Slicer X/Y“ die Druckerbett-Größe eintragen; die Belegung wird dann mittig auf die größeren Platten gesetzt. Sonst liegen die Teile gegenüber den Platten verschoben.
+- **„Einzeln als ZIP“** liefert je Platte eine eigene 3MF (Platte im Ursprung) für Slicer ohne Plattenverwaltung, z. B. PrusaSlicer oder Cura. Diese zeigen die gemeinsame Datei sonst als alle Teile nebeneinander.
+
+## Dateien
+
+```
+index.html          Oberfläche
+js/app.js           UI, 3D-Vorschau (three.js), STL/ZIP-Export
+js/pedalboard.js    Parametrische Geometrie (manifold-3d CSG), Normteile, Prüfungen, Stückliste
+js/drawing.js       Technische Zeichnung (SVG, A3)
+lib/manifold.*      manifold-3d 3.5.3 (Apache-2.0)
+```
+
+Die Geometrie lässt sich auch ohne Oberfläche nutzen, etwa in Node:
+
+```js
+import { initGeometry, generate } from './js/pedalboard.js';
+await initGeometry();
+const r = generate({ mode: 'alu', W: 600, D: 300, bedX: 220, bedY: 220 });
+// r.parts[i].mesh = { positions, indices } in Druckrichtung, r.bom, r.errors, r.warnings
+```
