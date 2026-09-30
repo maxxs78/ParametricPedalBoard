@@ -987,6 +987,88 @@ async function threeMF(idx) {
   return zip.generateAsync({ type: 'blob', mimeType: 'model/3mf', compression: 'DEFLATE' });
 }
 
+// ------------------------------------------------------------------ Gespeicherte Konfigurationen (nur lokal im Browser, kein Server)
+const SAVES_STORE = 'pedalboard-saves-v1';
+const loadSaves = () => { try { return JSON.parse(localStorage.getItem(SAVES_STORE) || '{}'); } catch (e) { return {}; } };
+const writeSaves = saves => { try { localStorage.setItem(SAVES_STORE, JSON.stringify(saves)); } catch (e) { /* ohne Speicher */ } };
+const fmtDate = iso => { try { return new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+function buildSaves() {
+  const box = document.getElementById('saves');
+  box.innerHTML = `<summary>Konfigurationen</summary>
+    <div class="fields">
+      <div class="field wide">
+        <label for="save-name">Name<small>Aktuelle Einstellungen (inkl. PedalClips) unter diesem Namen speichern – nur lokal in diesem Browser, nicht auf einem Server</small></label>
+        <div class="save-row"><input id="save-name" type="text" maxlength="50" placeholder="z. B. Mein Board 60×30"><button type="button" class="btn primary" id="save-add">Speichern</button></div>
+      </div>
+    </div>
+    <ul class="save-list" id="save-list"></ul>
+    <div class="save-io">
+      <button type="button" class="btn" id="save-export">Alle als Datei exportieren</button>
+      <button type="button" class="btn" id="save-import">Aus Datei importieren</button>
+      <input type="file" id="save-file" accept="application/json" hidden>
+    </div>`;
+  const nameEl = document.getElementById('save-name');
+  document.getElementById('save-add').addEventListener('click', () => {
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+    const saves = loadSaves();
+    saves[String(Date.now())] = { name, savedAt: new Date().toISOString(), params: JSON.parse(JSON.stringify(params)) };
+    writeSaves(saves);
+    nameEl.value = '';
+    renderSaves();
+  });
+  nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('save-add').click(); });
+  document.getElementById('save-export').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(loadSaves(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'pedalboard-konfigurationen.json'; a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  document.getElementById('save-import').addEventListener('click', () => document.getElementById('save-file').click());
+  document.getElementById('save-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const saves = loadSaves();
+      for (const v of Object.values(data)) {
+        if (v && v.name && v.params) saves[String(Date.now()) + Math.random().toString(36).slice(2, 6)] = v;
+      }
+      writeSaves(saves);
+      renderSaves();
+    } catch (err) { alert('Datei konnte nicht gelesen werden: ' + err.message); }
+  });
+  renderSaves();
+}
+function renderSaves() {
+  const list = document.getElementById('save-list');
+  const saves = loadSaves();
+  const entries = Object.entries(saves).sort((a, b) => (b[1].savedAt || '').localeCompare(a[1].savedAt || ''));
+  if (!entries.length) { list.innerHTML = '<li class="save-empty">Noch keine gespeicherten Konfigurationen.</li>'; return; }
+  list.innerHTML = entries.map(([id, v]) => `
+    <li class="save-item" data-id="${id}">
+      <span class="save-name" title="${esc(v.name)}">${esc(v.name)}</span>
+      <span class="save-date">${fmtDate(v.savedAt)}</span>
+      <button type="button" data-act="load">Laden</button>
+      <button type="button" data-act="del">Löschen</button>
+    </li>`).join('');
+  list.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const id = b.closest('.save-item').dataset.id;
+    const saves = loadSaves();
+    const entry = saves[id]; if (!entry) return;
+    if (b.dataset.act === 'load') {
+      params = { ...fresh(), ...entry.params };
+      if (!Array.isArray(params.clips)) params.clips = [];
+      if (params.slicerDiffers === undefined) params.slicerDiffers = !!(params.slicerX || params.slicerY);
+      clipSel = -1;
+      changed();
+    } else if (b.dataset.act === 'del') {
+      if (!confirm(`„${entry.name}“ wirklich löschen?`)) return;
+      delete saves[id]; writeSaves(saves); renderSaves();
+    }
+  }));
+}
+
 // ------------------------------------------------------------------ Darstellung: Farbschema, Einzelfarben, Transparenz
 function buildLook() {
   const box = document.getElementById('look');
@@ -1194,6 +1276,7 @@ buildForm();
 syncForm();
 buildLook();
 syncLook();
+buildSaves();
 busy.hidden = false;
 initGeometry().then(run).catch(err => {
   busy.textContent = 'Geometrie-Kern konnte nicht geladen werden: ' + err.message;

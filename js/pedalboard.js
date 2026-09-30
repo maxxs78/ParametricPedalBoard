@@ -1651,8 +1651,8 @@ function buildBom(G, pieces, cuts, hw) {
     let key;
     if (x.type === 'screw') {
       const s = SCREW[x.s];
-      key = x.s === 'S4' ? `Kunststoff-/Spanplattenschraube 4×${x.len}`
-        : x.s === 'S4K' ? `Senkkopf-Spanplattenschraube 4×${x.len}`
+      key = x.s === 'S4' ? `Kunststoff-/Spanplattenschraube 4×${x.len} (DIN 7981)`
+        : x.s === 'S4K' ? `Senkkopf-Spanplattenschraube 4×${x.len} (DIN 7982)`
         : x.s === 'M4L' ? `Linsenkopfschraube M4×${x.len} (ISO 7380)` : `Zylinderkopfschraube ${s.name}×${x.len} (ISO 4762)`;
     } else if (x.type === 'nut') key = 'Sechskantmutter M4 (ISO 4032)';
     else key = G.prof.nut;
@@ -1660,9 +1660,9 @@ function buildBom(G, pieces, cuts, hw) {
   }
   const note = k => k.includes('Linsenkopf') ? 'Verbindungslaschen der Seitenteile'
     : k.includes('Mutter') ? 'in die Sechskant-Taschen auf der Außenseite'
-    : k.startsWith('Nutenstein') ? 'Einschwenk-Nutensteine lassen sich nachträglich einsetzen'
+    : k.startsWith('Nutenstein') ? 'Einschwenk-Nutensteine lassen sich nachträglich einsetzen (herstellerspezifisch, kein einheitliches DIN/ISO-Maß)'
     : k.includes('Kunststoff') ? 'Vorbohrungen 3,2 mm sind in den Druckteilen'
-    : k === `Senkkopf-Spanplattenschraube 4×${CLIP_SCREW}` && G.clipCount ? 'PedalClips: Grundplatte an den Clip-Einsatz' + (G.alu && G.braces.length ? '; Alu-Streben' : '')
+    : k.startsWith(`Senkkopf-Spanplattenschraube 4×${CLIP_SCREW} `) && G.clipCount ? 'PedalClips: Grundplatte an den Clip-Einsatz' + (G.alu && G.braces.length ? '; Alu-Streben' : '')
     : '';
   if (G.alu) {
     const pr = G.prof;
