@@ -102,6 +102,7 @@ export const DEFAULTS = {
 const FLOOR_T = 5;        // Material unter der Schiene in den Stützen
 const PILOT_R = 1.6;      // Vorbohrung für 4-mm-Kunststoffschraube
 const BRACE_PILOT = 9;    // Tiefe der Vorbohrung über der Strebe
+const ALU_BRACE_SINK = 0.5; // Alu-Strebe: Senkkopf liegt so viel unter der Unterseite der Leiste
 const BRACE_CB = 3.5;     // Senkung für den Schraubenkopf an der Strebenunterseite
 const DD = 13;            // Länge Schwalbenschwanz
 const SPLICE_T = 6;       // Verbindungslasche Dicke
@@ -1445,12 +1446,19 @@ export function generate(params) {
     // ---- Streben (von unten in Endkappen und Stützen, von unten verschraubt)
     if (G.braces.length && G.alu) {
       const hx = braceHolesAlu(G);
-      const len = pickScrew(5 + BRACE_PILOT - 2);
+      const len = pickScrew(5 + BRACE_PILOT - 2 - ALU_BRACE_SINK);
+      const sk = SCREW.S4K, rHead = sk.hd / 2 + 0.2, zHead = b0 => b0 + ALU_BRACE_SINK;
       for (const b of G.braces) {
         let bar = box(G.railX0, p.W - G.railX0, b.y - b.w / 2, b.y + b.w / 2, b.z0, b.z0 + b.h);
-        bar = minus(bar, hx.map(x => M.Manifold.cylinder(b.h + 2, SCREW.S4K.clear / 2, SCREW.S4K.clear / 2, 16).translate([x, b.y, b.z0 - 1])));
+        // Senkung passend zum Senkkopf: Kopf liegt ALU_BRACE_SINK mm tiefer als die Unterseite der Strebe
+        const cuts = hx.flatMap(x => [
+          M.Manifold.cylinder(b.h + 2, sk.clear / 2, sk.clear / 2, 16).translate([x, b.y, b.z0 - 1]),
+          M.Manifold.cylinder(ALU_BRACE_SINK + 1, rHead, rHead, 28).translate([x, b.y, b.z0 - 1]),
+          M.Manifold.cylinder(sk.hh, rHead, sk.clear / 2 - 0.05, 28).translate([x, b.y, zHead(b.z0)]),
+        ]);
+        bar = minus(bar, cuts);
         result.assembly.push({ mesh: toMesh(bar), role: 'alu', explode: [0, 0, -1.2] });
-        for (const x of hx) hw.push({ type: 'screw', s: 'S4K', len, p: [x, b.y, b.z0], dir: [0, 0, 1], ex: [0, 0, -1.9] });
+        for (const x of hx) hw.push({ type: 'screw', s: 'S4K', len, drawLen: len - sk.hh, p: [x, b.y, b.z0 + ALU_BRACE_SINK + sk.hh], dir: [0, 0, 1], ex: [0, 0, -1.9] });
       }
     } else if (G.braces.length) {
       const groups = new Map();
@@ -1669,7 +1677,7 @@ function buildBom(G, pieces, cuts, hw) {
     bom.push({ item: `Alu-Profil ${pr.label}, schwarz eloxiert`, qty: nR, note: `Zuschnitt je ${G.railLen.toFixed(0)} mm (gesamt ${(nR * G.railLen / 1000).toFixed(2)} m), Kernbohrungen mit ${pr.tap}-Gewinde` });
     if (G.braces.length) {
       const pos = braceHolesAlu(G).map(x => x - G.railX0).sort((u, v) => u - v).map(v => v.toFixed(0)).join(' / ');
-      bom.push({ item: 'Alu-Flachstab 20×5 mm (Strebe)', qty: G.braces.length, note: `Zuschnitt je ${G.railLen.toFixed(0)} mm; Bohrungen Ø4,5 mit Senkung bei ${pos} mm` });
+      bom.push({ item: 'Alu-Flachstab 20×5 mm (Strebe)', qty: G.braces.length, note: `Zuschnitt je ${G.railLen.toFixed(0)} mm; Bohrungen Ø4,5 bei ${pos} mm, Senkung Ø${(SCREW.S4K.hd + 0.4).toFixed(1).replace('.', ',')} (Kopf ${ALU_BRACE_SINK} mm unter der Leistenfläche)` });
     }
   }
   for (const [k, v] of count) bom.push({ item: k, qty: v, note: note(k) });

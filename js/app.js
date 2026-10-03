@@ -377,11 +377,14 @@ function hardwareObj(h) {
   const dir = new THREE.Vector3(...h.dir).normalize();
   if (h.type === 'screw') {
     const S = SCREW[h.s];
-    const shaft = new THREE.Mesh(cached(`sh${S.d}-${h.len}`, () => new THREE.CylinderGeometry(S.d / 2, S.d / 2, h.len, 16)), MAT.steel);
-    shaft.position.y = h.len / 2;
+    const sl = h.drawLen ?? h.len;
+    const shaft = new THREE.Mesh(cached(`sh${S.d}-${sl}`, () => new THREE.CylinderGeometry(S.d / 2, S.d / 2, sl, 16)), MAT.steel);
+    shaft.position.y = sl / 2;
     const head = new THREE.Mesh(cached(`hd${h.s}`, () => h.s === 'M4L' || h.s === 'S4'
       ? new THREE.SphereGeometry(S.hd / 2, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, (S.hh * 1.1) / (S.hd / 2), 1).rotateX(Math.PI)
-      : new THREE.CylinderGeometry(S.hd / 2, S.hd / 2, S.hh, 20).translate(0, -S.hh / 2, 0)), MAT.steel);
+      : h.s === 'S4K'
+        ? new THREE.CylinderGeometry(S.d / 2, S.hd / 2, S.hh, 20).translate(0, -S.hh / 2, 0)
+        : new THREE.CylinderGeometry(S.hd / 2, S.hd / 2, S.hh, 20).translate(0, -S.hh / 2, 0)), MAT.steel);
     const sock = new THREE.Mesh(cached(`so${S.d}`, () => new THREE.CylinderGeometry(S.d * 0.45, S.d * 0.45, 0.8, 6)), MAT.rail);
     sock.position.y = -(h.s === 'M4L' || h.s === 'S4' ? S.hh * 1.1 : S.hh) + 0.3;
     g.add(shaft, head, sock);
@@ -997,7 +1000,7 @@ function buildSaves() {
   box.innerHTML = `<summary>Konfigurationen</summary>
     <div class="fields">
       <div class="field wide">
-        <label for="save-name">Name<small>Aktuelle Einstellungen (inkl. PedalClips) unter diesem Namen speichern – nur lokal in diesem Browser, nicht auf einem Server</small></label>
+        <label for="save-name">Name<small>Aktuelle Einstellungen (inkl. PedalClips und Farbschema/Darstellung) unter diesem Namen speichern – nur lokal in diesem Browser, nicht auf einem Server</small></label>
         <div class="save-row"><input id="save-name" type="text" maxlength="50" placeholder="z. B. Mein Board 60×30"><button type="button" class="btn primary" id="save-add">Speichern</button></div>
       </div>
     </div>
@@ -1012,7 +1015,7 @@ function buildSaves() {
     const name = nameEl.value.trim();
     if (!name) { nameEl.focus(); return; }
     const saves = loadSaves();
-    saves[String(Date.now())] = { name, savedAt: new Date().toISOString(), params: JSON.parse(JSON.stringify(params)) };
+    saves[String(Date.now())] = { name, savedAt: new Date().toISOString(), params: JSON.parse(JSON.stringify(params)), look: JSON.parse(JSON.stringify(look)) };
     writeSaves(saves);
     nameEl.value = '';
     renderSaves();
@@ -1061,6 +1064,7 @@ function renderSaves() {
       if (!Array.isArray(params.clips)) params.clips = [];
       if (params.slicerDiffers === undefined) params.slicerDiffers = !!(params.slicerX || params.slicerY);
       clipSel = -1;
+      if (entry.look) { for (const k of Object.keys(look)) delete look[k]; Object.assign(look, { scheme: 'hellfire', ...SCHEMES.hellfire, transparent: false, opacity: 0.35 }, entry.look); delete look.name; lookChanged(); }
       changed();
     } else if (b.dataset.act === 'del') {
       if (!confirm(`„${entry.name}“ wirklich löschen?`)) return;
