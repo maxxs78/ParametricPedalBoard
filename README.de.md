@@ -147,6 +147,12 @@ const r = generate({ mode: 'alu', W: 600, D: 300, bedX: 220, bedY: 220 });
 // r.parts[i].mesh = { positions, indices } in Druckrichtung, r.bom, r.errors, r.warnings
 ```
 
+## Unterstützung
+
+Das Tool ist kostenlos und Open Source. Wenn es dir Zeit gespart oder beim Bauen geholfen hat, kannst du es mit einem Kaffee unterstützen.
+
+<a href="https://www.buymeacoffee.com/maxxs78" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="60" width="217"></a>
+
 ## Lizenz
 
 Dieses Projekt steht unter der [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). Wer eine veränderte Version dieses Konfigurators als öffentlichen Webdienst betreibt, muss den Quellcode seiner Änderungen den Nutzern zugänglich machen.

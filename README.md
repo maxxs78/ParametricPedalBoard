@@ -147,6 +147,12 @@ const r = generate({ mode: 'alu', W: 600, D: 300, bedX: 220, bedY: 220 });
 // r.parts[i].mesh = { positions, indices } in print orientation, r.bom, r.errors, r.warnings
 ```
 
+## Support
+
+This tool is free and open source. If it saved you time or helped you build something, you can support it with a coffee.
+
+<a href="https://www.buymeacoffee.com/maxxs78" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="60" width="217"></a>
+
 ## License
 
 This project is licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0). If you run a modified version of this configurator as a public web service, you must make the source of your modifications available to its users.
