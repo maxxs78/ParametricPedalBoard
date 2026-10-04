@@ -91,7 +91,7 @@ export const DEFAULTS = {
   capT: 22, pocket: 10, supT: 24, maxSpan: 400,
   windows: true, winEdge: 6, wall: 6,
   feet: true, footD: 12, footH: 2,
-  psu: true, psuType: 'box', psuCount: 1, psuL: 150, psuW: 80, psuH: 30, psuGap: 2, psuBay: 0, psuWall: 5,
+  psu: true, psuOne: false, psuType: 'box', psuCount: 1, psuL: 150, psuW: 80, psuH: 30, psuGap: 2, psuBay: 0, psuWall: 5,
   brace: true, braceCount: 2, braceW: 20, braceH: 12,
   bend: false, bendAngle: 8,
   back: true, backT: 4,
@@ -103,6 +103,7 @@ export const DEFAULTS = {
 
 const FLOOR_T = 5;        // Material unter der Schiene in den Stützen
 const PILOT_R = 1.6;      // Vorbohrung für 4-mm-Kunststoffschraube
+const PSU_BRIDGE_MAX = 45;  // einteilige Netzteilbox: größte freitragende Brücke (Innenhöhe) ohne Stützstrukturen
 const BRACE_PILOT = 9;    // Tiefe der Vorbohrung über der Strebe
 const ALU_BRACE_SINK = 0.5; // Alu-Strebe: Senkkopf liegt so viel unter der Unterseite der Leiste
 const BRACE_CB = 3.5;     // Senkung für den Schraubenkopf an der Strebenunterseite
@@ -1015,28 +1016,37 @@ function plateStrip(G, bay, st, bosses) {
 // ================================================================ Netzteil-/Batteriebox
 // Lokaler Rahmen: x ab linker Netzteil-Stirnseite nach innen, (a, b) Hangkoordinaten.
 // Die Rückseite (+a) bleibt komplett offen für die Anschlüsse; das Netzteil wird von hinten eingeschoben.
-function psuHolder(G, P) {
+// one = true: einteilige Box mit zwei Seitenwänden (Deckplatte, Boden und Vorderwand laufen durch).
+function psuHolder(G, P, one = false) {
   const t = P.t, S = P.S;
+  const L = P.x1 - P.x0;                                              // Innenlänge zwischen den Seitenwänden
+  const xPlate = one ? L + t : P.xPlate, xBot = one ? L + t : P.xBot;
   const wallCS = poly([[P.aL - t, P.bIn - t], [P.aR, P.bIn - t], [P.pa1, P.bTop], [P.pa0, P.bTop]]);
   const wall = wallCS.extrude(t).rotate([90, 0, 90]).translate([-t, 0, 0]);
   const parts = [
     wall,
-    box(-t, P.xPlate, P.pa0, P.pa1, P.bTop - P.tp, P.bTop),          // Deckplatte an den Schienen
-    box(-t, P.xBot, P.aL - t, P.aR, P.bIn - t, P.bIn),                // Boden
-    box(-t, P.xBot, P.aL - t, P.aL, P.bIn - t, P.bTop - P.tp),        // Vorderwand
+    box(-t, xPlate, P.pa0, P.pa1, P.bTop - P.tp, P.bTop),            // Deckplatte an den Schienen
+    box(-t, xBot, P.aL - t, P.aR, P.bIn - t, P.bIn),                  // Boden
+    box(-t, xBot, P.aL - t, P.aL, P.bIn - t, P.bTop - P.tp),          // Vorderwand
   ];
+  if (one) parts.push(wall.translate([L + t, 0, 0]));
   let m = union(parts);
   const cut = [];
-  for (const hole of P.holes) for (const xl of P.screwXl) {
-    cut.push(M.Manifold.cylinder(P.tp + 2, S.clear / 2, S.clear / 2, 20).translate([xl, hole.a, P.bTop - P.tp - 1]));
-    cut.push(M.Manifold.cylinder(P.cbDepth + 1, S.hd / 2 + 0.75, S.hd / 2 + 0.75, 28).translate([xl, hole.a, P.bTop - P.tp - 1]));
+  const bLow = P.bIn - t - 1;
+  for (const hole of P.holes) for (const xl of P.screwXl) for (const x of one ? [xl, L - xl] : [xl]) {
+    cut.push(M.Manifold.cylinder(P.tp + 2, S.clear / 2, S.clear / 2, 20).translate([x, hole.a, P.bTop - P.tp - 1]));
+    cut.push(M.Manifold.cylinder(P.cbDepth + 1, S.hd / 2 + 0.75, S.hd / 2 + 0.75, 28).translate([x, hole.a, P.bTop - P.tp - 1]));
+    // Zugang von unten: Schraubendreher und Schraubenkopf passen durch Boden und (falls im Weg) Vorderwand
+    cut.push(M.Manifold.cylinder(P.bTop - P.tp + 1 - bLow, S.hd / 2 + 0.75, S.hd / 2 + 0.75, 28).translate([x, hole.a, bLow]));
   }
   // Lüftungsschlitze im Boden (quer zur Druckrichtung schmal → brückenfrei)
+  const xs = one ? [[10, P.xBot - 8], [L - P.xBot + 8, L - 10]] : [[10, P.xBot - 8]];   // einteilig: mittlerer Steg bleibt
   for (let av = P.aL + 10; av + 6 <= P.aR - 10; av += 13) {
-    if (P.xBot - 10 > 16) cut.push(box(10, P.xBot - 8, av, av + 6, P.bIn - t - 1, P.bIn + 1));
+    if (P.xBot - 10 > 16) for (const [x0, x1] of xs) cut.push(box(x0, x1, av, av + 6, P.bIn - t - 1, P.bIn + 1));
   }
   // Schlitze für Klett-/Kabelbinder, die das Netzteil hinten sichern
   cut.push(box(-t - 1, 0.01, P.aR - 16, P.aR - 11, P.bIn + 3, P.bIn + 11));
+  if (one) cut.push(box(L - 0.01, L + t + 1, P.aR - 16, P.aR - 11, P.bIn + 3, P.bIn + 11));
   m = minus(m, cut);
   return m;
 }
@@ -1418,29 +1428,44 @@ export function generate(params) {
     // ---- Netzteil-/Batteriebox (alle Felder nutzen denselben Halter)
     if (G.goodPsus.length) {
       const nP = G.goodPsus.length;
-      const holder = psuHolder(G, G.goodPsus[0]);
-      const label = tr(G.goodPsus[0].isBox ? 'p.psuBox' : 'p.psuBracket');
-      const flatL = holder.rotate([0, -90, 0]);
-      result.parts.push(printPart(G, flatL, tr('p.sideLeft', { label }), nP, { group: 'psu', short: tr('p.sideLeft', { label }) }));
-      result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), tr('p.sideRight', { label }), nP, { group: 'psu', short: tr('p.sideRight', { label }) }));
+      const P0 = G.goodPsus[0];
+      const label = tr(P0.isBox ? 'p.psuBox' : 'p.psuBracket');
+      // einteilige Box: liegt auf einer Seitenwand, die andere Seitenwand überbrückt den Innenraum (Höhe psuH) ohne Stützen
+      let one = null, holder1 = null;
+      if (p.psuOne && P0.isBox) {
+        if (p.psuH + 1 > PSU_BRIDGE_MAX) G.warnings.push(tr('e.psuOneBridge', { max: PSU_BRIDGE_MAX - 1 }));
+        else {
+          holder1 = psuHolder(G, P0, true);
+          one = printPart(G, holder1.rotate([0, -90, 0]), label, nP, { group: 'psu', short: label });
+          if (!one.fit.ok) { G.warnings.push(tr('e.psuOneBed', { size: one.size.map(v => fx(v)).join(' × ') })); one = null; }
+        }
+      }
+      result.info.psuOne = !!one;
+      const holder = one ? null : psuHolder(G, P0);
+      if (one) result.parts.push(one);
+      else {
+        const flatL = holder.rotate([0, -90, 0]);
+        result.parts.push(printPart(G, flatL, tr('p.sideLeft', { label }), nP, { group: 'psu', short: tr('p.sideLeft', { label }) }));
+        result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), tr('p.sideRight', { label }), nP, { group: 'psu', short: tr('p.sideRight', { label }) }));
+      }
       const psuT = G.psuTier;
-      const down = [0, psuT.sa, -psuT.ca];
+      const down = [0, psuT.sa, -psuT.ca], nPsu = [0, -psuT.sa, psuT.ca];
       // P.aL/P.aR/P.sP usw. sind globale a-Werte (inkl. Bogenlänge der vorherigen Stufen) – vor dem
       // Drehen um die eigene Stufe erst wieder auf lokale a-Werte zurückrechnen (wie place() für Schienen).
       const toAsm = m => m.translate([0, -psuT.Lstart, 0]).rotate([deg(psuT.alpha), 0, 0]).translate([0, psuT.y0, psuT.hF]);
-      const hL = toAsm(holder), hR = toAsm(holder.mirror([1, 0, 0]));
+      const hL = toAsm(one ? holder1 : holder), hR = one ? null : toAsm(holder.mirror([1, 0, 0]));
       for (const P of G.goodPsus) {
         const T2 = G.segT[P.bay - 1];
-        result.assembly.push({ mesh: toMesh(bendMesh(T2, hL.translate([P.x0, 0, 0]))), role: 'printed', explode: bendVec(T2, down.map((v, i) => v + (i === 0 ? -0.25 : 0))) });
-        result.assembly.push({ mesh: toMesh(bendMesh(T2, hR.translate([P.x1, 0, 0]))), role: 'printed', explode: bendVec(T2, down.map((v, i) => v + (i === 0 ? 0.25 : 0))) });
+        result.assembly.push({ mesh: toMesh(bendMesh(T2, hL.translate([P.x0, 0, 0]))), role: 'printed', explode: bendVec(T2, down.map((v, i) => v + (i === 0 && !one ? -0.25 : 0))) });
+        if (!one) result.assembly.push({ mesh: toMesh(bendMesh(T2, hR.translate([P.x1, 0, 0]))), role: 'printed', explode: bendVec(T2, down.map((v, i) => v + (i === 0 ? 0.25 : 0))) });
         const psuBox = box(P.x0 + 0.5, P.x1 - 0.5, P.sP - p.psuW / 2, P.sP + p.psuW / 2, P.bIn + 0.5, P.bIn + 0.5 + p.psuH);
         result.assembly.push({ mesh: toMesh(bendMesh(T2, toAsm(psuBox))), role: 'psu', explode: bendVec(T2, [0, 1.4, 0]) });
         const len = G.alu ? pickScrew(P.tp - P.cbDepth + 4, P.tp - P.cbDepth + 7) : pickScrew(P.tp - P.cbDepth + 8, P.tp - P.cbDepth + h - 3);
         for (const hole of P.holes) for (const xl of P.screwXl) for (const side of [-1, 1]) {
           const x = side < 0 ? P.x0 + xl : P.x1 - xl;
           const ex = down.map((v, i) => v * 1.15 + (i === 0 ? side * 0.25 : 0));
-          hw.push({ type: 'screw', s: G.alu ? G.prof.floorScrew : 'S4', len, p: bendPt(T2, [x, ...Y(hole.a, P.bTop - P.tp + P.cbDepth)]), dir: bendVec(T2, n), ex: bendVec(T2, ex) });
-          if (G.alu) hw.push({ type: 'tnut', ...G.prof.tnut, p: bendPt(T2, [x, ...Y(hole.a, -h + G.prof.lip + G.prof.tnut.t / 2 + 0.3)]), dir: bendVec(T2, n), along: bendVec(T2, [1, 0, 0]), ex: bendVec(T2, railEx) });
+          hw.push({ type: 'screw', psu: true, s: G.alu ? G.prof.floorScrew : 'S4', len, p: bendPt(T2, [x, ...Y(hole.a, P.bTop - P.tp + P.cbDepth)]), dir: bendVec(T2, nPsu), ex: bendVec(T2, ex) });
+          if (G.alu) hw.push({ type: 'tnut', ...G.prof.tnut, p: bendPt(T2, [x, ...Y(hole.a, -h + G.prof.lip + G.prof.tnut.t / 2 + 0.3)]), dir: bendVec(T2, nPsu), along: bendVec(T2, [1, 0, 0]), ex: bendVec(T2, railEx) });
         }
       }
     }

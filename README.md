@@ -76,6 +76,8 @@ Alternatively, run `python -m http.server 8123` in the project folder and open h
   - The box sits far enough back that its open rear ends 2 mm before the back-panel plane (adjustable), even without a back panel.
   - The **rear is completely open** for the connectors. The power supply is slid in from behind and secured with a hook-and-loop cable tie.
   - Wall thickness adjustable (default 5 mm), top plate 8 mm. Screw heads sit recessed so the power supply sits flush.
+  - **Screws always reachable:** every mounting screw has an opening in the bottom of the box (Ø 9.5 mm) on its axis, so a screwdriver reaches it from below before the power supply goes in.
+  - **One piece or two halves:** the box is printed as two halves by default. "Print in one piece" makes it a single part – it lies on one side wall and the other side wall bridges the interior without supports, which is only offered up to a power supply height of 44 mm and if it fits on the print bed (otherwise the app falls back to two halves and says why).
   - Printed lying on the side cheek, with all walls vertical. No support material needed.
 - **PedalClips (optional, any number)**: Quick mounts for one pedal each, consisting of two printed parts:
   - **Base plate** sized to the enclosure (Mini, 1590A, 1590B, 125B, Boss compact, 1590BB, 1590DD, or custom dimensions), optionally rotated 90°. The pedal is attached with hook-and-loop tape (hook side) or a dual-lock fastener.

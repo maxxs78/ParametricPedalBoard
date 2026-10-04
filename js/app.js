@@ -150,6 +150,7 @@ const GROUPS = [
     { id: 'psuCount', unit: 'pcs', min: 1, max: 4, step: 1, show: p => p.psu },
     { id: 'psuType', type: 'select', show: p => p.psu,
       options: [['box', 'opt.psuType.box'], ['bracket', 'opt.psuType.bracket']] },
+    { id: 'psuOne', type: 'check', show: p => p.psu && p.psuType === 'box' },
     { id: 'psuWall', unit: 'mm', min: 3, max: 10, step: 0.5, show: p => p.psu },
     { id: 'psuL', unit: 'mm', min: 40, max: 500, step: 1, show: p => p.psu },
     { id: 'psuW', unit: 'mm', min: 20, max: 300, step: 1, show: p => p.psu },
@@ -838,7 +839,7 @@ function renderBom() {
   const rows = result.bom.map(b => `<tr><td class="n">${esc(b.qty)}</td><td>${esc(b.item)}</td><td style="color:var(--ink-2)">${esc(b.note)}</td></tr>`).join('');
   const joint = result.info.pieces > 1 ? [t('asm.joint')] : [];
   const bend = p.bend && result.info.bendAngle ? [t('asm.bend', { a: fmt(result.info.bendAngle, 1) })] : [];
-  const psu = p.psu ? [t(p.psuType === 'box' ? 'asm.psu.box' : 'asm.psu.bracket')] : [];
+  const psu = p.psu ? [t(p.psuType === 'box' ? (result.info.psuOne ? 'asm.psu.boxOne' : 'asm.psu.box') : 'asm.psu.bracket')] : [];
   const extra = [
     ...(p.brace ? [t(p.mode === 'alu' ? 'asm.brace.alu' : 'asm.brace.print')] : []),
     ...(p.back ? [t('asm.back')] : []),
@@ -853,24 +854,24 @@ function renderBom() {
     ...bend,
     t(result.info.supports ? 'asm.alu.tnuts.sup' : 'asm.alu.tnuts'),
     t('asm.alu.caps'),
-    ...extra,
     ...psu,
+    ...extra,
     t('asm.alu.feet'),
   ] : p.mode === 'plate' ? [
     ...joint,
     ...bend,
     t('asm.plate.strips'),
     t('asm.plate.screw'),
-    ...extra,
     ...psu,
+    ...extra,
     t('asm.plate.feet'),
   ] : [
     ...joint,
     ...bend,
     t(p.dovetail ? 'asm.print.rails.dt' : 'asm.print.rails'),
     t(p.dovetail ? 'asm.print.caps.dt' : 'asm.print.caps'),
-    ...extra,
     ...psu,
+    ...extra,
     t('asm.print.feet'),
   ];
 

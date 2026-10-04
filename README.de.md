@@ -76,6 +76,8 @@ Alternativ `python -m http.server 8123` im Projektordner ausführen und dann htt
   - Die Box sitzt so weit hinten, dass ihre offene Rückseite 2 mm vor der Rückwandebene endet (einstellbar), auch ohne Rückwand.
   - Die **Rückseite ist komplett offen** für die Anschlüsse. Das Netzteil wird von hinten eingeschoben und mit einem Klettkabelbinder gesichert.
   - Wandstärke einstellbar (Standard 5 mm), Deckplatte 8 mm. Die Schraubenköpfe liegen versenkt, damit das Netzteil flach anliegt.
+  - **Schrauben immer erreichbar:** Jede Befestigungsschraube hat in ihrer Achse eine Öffnung im Boden der Box (Ø 9,5 mm), sodass ein Schraubendreher sie von unten erreicht, bevor das Netzteil eingeschoben wird.
+  - **Einteilig oder zwei Hälften:** Standardmäßig wird die Box in zwei Hälften gedruckt. „Einteilig drucken“ macht daraus ein Teil – es liegt auf einer Seitenwand, die andere Seitenwand überbrückt den Innenraum ohne Stützen. Das wird nur bis 44 mm Netzteilhöhe und bei passender Druckbettgröße angeboten (sonst fällt die App auf zwei Hälften zurück und nennt den Grund).
   - Gedruckt wird auf der Seitenwange liegend, alle Wände stehen senkrecht. Stützmaterial ist nicht nötig.
 - **PedalClips (optional, beliebig viele)**: Schnellhalter für je ein Pedal, bestehend aus zwei Druckteilen:
   - **Grundplatte** in Gehäusegröße (Mini, 1590A, 1590B, 125B, Boss Kompakt, 1590BB, 1590DD oder eigene Maße), wahlweise quer. Das Pedal wird mit Klettband (Hakenseite) oder Dual Lock aufgeklebt.
