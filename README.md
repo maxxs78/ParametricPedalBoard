@@ -36,7 +36,7 @@ Alternatively, run `python -m http.server 8123` in the project folder and open h
   - Only possible with continuously printed rails or plate ribs; a continuous aluminum profile (construction type B) cannot bend.
   - The **supports become wedge-shaped** (like a miter joint): both support halves are each rotated by half the angle relative to each other and merged into a single solid. Every outer face — along with its dovetail pocket, screws, and bores — thus stands at a right angle to the rails of its bay. Toward the front the support stays as thick as configured; toward the back it becomes thicker. It is printed lying on a wedge face.
   - Up to 20° per support is possible when concave (positive angle). Convex (negative angle) makes the support thinner toward the back; the generator then limits the angle so the pockets of the rearmost rail don't touch (a thicker support allows more).
-  - Rails, plates, braces, power-supply mounts, and end caps remain the same printed parts as in the unbent version. The technical drawing still shows the unrolled (unbent) shape, with a note on the bend angle in the title block.
+  - Rails, plates, braces, power-supply mounts, and end caps remain the same printed parts as in the unbent version. The technical drawing shows the bent board in all three views (as silhouettes of the actual parts, with the bend angle in the top-view title and a note above the title block); part sizes, rail length, and the parts lists stay unrolled.
 - **Weight-reduction windows (optional)**: Cutouts in end caps and supports, with rounded corners.
   - Edge distance and web width are individually adjustable. This lets the windows reach close to the outer edge, including the front (lower) area of the end caps.
   - Full wall thickness is automatically preserved around rail pockets, brace pockets, rubber feet, and back-wall screws; vertical posts support each rail, wide bays get a diagonal rib, and every large, roughly rectangular window is additionally reinforced with a diagonal brace (rear-bottom to front-top) — keeping the parts stable despite less material.
@@ -107,7 +107,7 @@ The table calculates with PETG (1.27 g/cm³); to convert to a different filament
 The "Drawing" tab generates an A3 sheet using first-angle projection with the following content:
 - Front view, left side view, and top view with main dimensions, support spacing, tilt angle, and rail pitch
 - Hidden pockets, split joints, connecting brackets, and power supply
-- Cross-section through the rail
+- Cross-section through the rail (build type C: through the plate, across the ribs and cable slots)
 - Parts lists (BOM) for printed parts and purchased parts
 - Title block with scale
 

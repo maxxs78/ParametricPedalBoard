@@ -36,7 +36,7 @@ Alternativ `python -m http.server 8123` im Projektordner ausführen und dann htt
   - Nur bei durchgehend gedruckten Schienen bzw. Platten-Rippen möglich; ein durchgehendes Alu-Profil (Bauart B) kann sich nicht biegen.
   - Die **Stützen werden zum Keil** (wie eine Gehrung): Beide Stützen-Hälften sind je um den halben Winkel gegeneinander gedreht und zu einem Vollkörper vereinigt. Jede Außenfläche steht so samt Schwalbenschwanz-Tasche, Schrauben und Bohrungen rechtwinklig zu den Schienen ihres Feldes. Nach vorne bleibt die Stütze so dick wie eingestellt, nach hinten wird sie dicker. Gedruckt wird sie auf einer Keilfläche liegend.
   - Konkav (positiver Winkel) sind bis zu 20° je Stütze möglich. Konvex (negativer Winkel) wird die Stütze nach hinten dünner; dann begrenzt der Generator den Winkel, damit sich die Taschen der hintersten Schiene nicht berühren (mehr geht mit einer dickeren Stütze).
-  - Schienen, Platten, Streben, Netzteilhalter und Endkappen bleiben dieselben Druckteile wie ungebogen. Die technische Zeichnung zeigt weiterhin die abgewickelte (ungebogene) Form, mit einem Hinweis auf den Biegewinkel im Schriftfeld.
+  - Schienen, Platten, Streben, Netzteilhalter und Endkappen bleiben dieselben Druckteile wie ungebogen. Die technische Zeichnung zeigt das gebogene Board in allen drei Ansichten (als Schattenrisse der tatsächlichen Teile, mit Biegewinkel im Titel der Draufsicht und einem Hinweis über dem Schriftfeld); Teilemaße, Schienenlänge und Stücklisten bleiben abgewickelt.
 - **Leichtbau-Fenster (optional)**: Aussparungen in Endkappen und Stützen, mit verrundeten Ecken.
   - Randabstand und Stegbreite sind einzeln einstellbar. Die Fenster reichen dadurch bis dicht an die Außenkante, auch in den vorderen (niedrigen) Bereich der Endkappen.
   - Um die Schienentaschen, Strebentaschen, Gummifüße und Rückwand-Schrauben bleibt automatisch die volle Wandstärke stehen, senkrechte Pfosten stützen jede Schiene, breite Felder bekommen eine diagonale Rippe, und jedes große, noch annähernd rechteckige Fenster wird zusätzlich durch eine Diagonalstrebe (unten hinten → oben vorne) ausgesteift – die Teile bleiben so trotz weniger Material stabil.
@@ -107,7 +107,7 @@ Die Tabelle rechnet mit PETG (1,27 g/cm³); zum Umrechnen auf ein anderes Filame
 Der Tab „Zeichnung“ erzeugt ein A3-Blatt nach Projektionsmethode 1 mit folgendem Inhalt:
 - Vorderansicht, Seitenansicht von links und Draufsicht mit Hauptmaßen, Stützenabständen, Neigungswinkel und Schienenteilung
 - verdeckte Taschen, Teilungsfugen, Verbindungslaschen und Netzteil
-- Schnitt durch die Schiene
+- Schnitt durch die Schiene (Bauart C: durch die Platte, quer zu Rippen und Kabelschlitzen)
 - Stücklisten für Druckteile und Zukaufteile
 - Schriftfeld mit Maßstab
 

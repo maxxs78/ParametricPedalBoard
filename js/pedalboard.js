@@ -1306,8 +1306,8 @@ export function generate(params) {
       const flatL = pc.rotate([0, -90, 0]);
       result.parts.push(printPart(G, flatL, tr('p.capLeft') + suffix(i), 1, { group: 'side', short: tr('p.capLeft') }));
       result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), tr('p.capRight') + suffix(i), 1, { group: 'side', short: tr('p.capRight') }));
-      result.assembly.push({ mesh: toMesh(bendMesh(G.segT[0], pc)), role: 'printed', explode: bendVec(G.segT[0], [-1, 0, 0]) });
-      result.assembly.push({ mesh: toMesh(bendMesh(G.segT[Tn], pc.mirror([1, 0, 0]).translate([p.W, 0, 0]))), role: 'printed', explode: bendVec(G.segT[Tn], [1, 0, 0]) });
+      result.assembly.push({ mesh: toMesh(bendMesh(G.segT[0], pc)), role: 'printed', tag: 'side', explode: bendVec(G.segT[0], [-1, 0, 0]) });
+      result.assembly.push({ mesh: toMesh(bendMesh(G.segT[Tn], pc.mirror([1, 0, 0]).translate([p.W, 0, 0]))), role: 'printed', tag: 'side', explode: bendVec(G.segT[Tn], [1, 0, 0]) });
     });
     supPieces.forEach((pc, i) => {
       // Keil: zum Drucken so zurückdrehen, dass die linke Außenfläche flach aufs Bett kommt
@@ -1316,7 +1316,7 @@ export function generate(params) {
       // Stütze sitzt auf der Winkelhalbierenden ihrer beiden Felder (Feld k um −α/2 um die Vorderkante gedreht)
       G.supports.forEach((c, k) => {
         const mid = m => bendMesh(G.segT[k], G.bendA ? bendMesh(localWedgeT(G, c, 0, -G.bendA / 2), m) : m);
-        result.assembly.push({ mesh: toMesh(mid(pc.translate([c - p.supT / 2, 0, 0]))), role: 'printed', explode: bendVec(G.segT[k], [0, 0, -0.4]) });
+        result.assembly.push({ mesh: toMesh(mid(pc.translate([c - p.supT / 2, 0, 0]))), role: 'printed', tag: 'side', explode: bendVec(G.segT[k], [0, 0, -0.4]) });
       });
     });
 
@@ -1341,7 +1341,7 @@ export function generate(params) {
         let m = plate.translate([sp.y0 + 0.2, sp.z0 + 0.2, 0]).rotate([90, 0, 90]); // x=Dicke, y, z
         m = sd.out < 0 ? m.translate([sd.xIn - SPLICE_T, 0, 0]) : m.mirror([1, 0, 0]).translate([sd.xIn + SPLICE_T, 0, 0]);
         const ex = sd.ex.map((v, i) => v + (i === 0 ? -sd.out * 0.5 : 0));
-        result.assembly.push({ mesh: toMesh(wm(m)), role: 'printed', explode: wv(ex) });
+        result.assembly.push({ mesh: toMesh(wm(m)), role: 'printed', tag: 'tab', explode: wv(ex) });
         const L = spliceBoltLen(sd.T);
         const dir3 = wv([sd.out, 0, 0]);
         for (const y of sp.cols) for (const z of sp.rows) {
@@ -1456,8 +1456,8 @@ export function generate(params) {
       const hL = toAsm(one ? holder1 : holder), hR = one ? null : toAsm(holder.mirror([1, 0, 0]));
       for (const P of G.goodPsus) {
         const T2 = G.segT[P.bay - 1];
-        result.assembly.push({ mesh: toMesh(bendMesh(T2, hL.translate([P.x0, 0, 0]))), role: 'printed', explode: bendVec(T2, down.map((v, i) => v + (i === 0 && !one ? -0.25 : 0))) });
-        if (!one) result.assembly.push({ mesh: toMesh(bendMesh(T2, hR.translate([P.x1, 0, 0]))), role: 'printed', explode: bendVec(T2, down.map((v, i) => v + (i === 0 ? 0.25 : 0))) });
+        result.assembly.push({ mesh: toMesh(bendMesh(T2, hL.translate([P.x0, 0, 0]))), role: 'printed', tag: 'psu', explode: bendVec(T2, down.map((v, i) => v + (i === 0 && !one ? -0.25 : 0))) });
+        if (!one) result.assembly.push({ mesh: toMesh(bendMesh(T2, hR.translate([P.x1, 0, 0]))), role: 'printed', tag: 'psu', explode: bendVec(T2, down.map((v, i) => v + (i === 0 ? 0.25 : 0))) });
         const psuBox = box(P.x0 + 0.5, P.x1 - 0.5, P.sP - p.psuW / 2, P.sP + p.psuW / 2, P.bIn + 0.5, P.bIn + 0.5 + p.psuH);
         result.assembly.push({ mesh: toMesh(bendMesh(T2, toAsm(psuBox))), role: 'psu', explode: bendVec(T2, [0, 1.4, 0]) });
         const len = G.alu ? pickScrew(P.tp - P.cbDepth + 4, P.tp - P.cbDepth + 7) : pickScrew(P.tp - P.cbDepth + 8, P.tp - P.cbDepth + h - 3);
@@ -1631,6 +1631,7 @@ export function generate(params) {
     result.info.pieces = np;
     result.info.cuts = cuts.map(c => c.c);
     result.drawing = drawingData(G, prof2D, cuts);
+    if (G.bendA) result.drawing.bent = bentViews(result.assembly);
   } catch (e) {
     console.error(e);
     G.errors.push(tr('e.geomError', { msg: e.message }));
@@ -1641,6 +1642,47 @@ export function generate(params) {
 }
 
 // ================================================================ Daten für die technische Zeichnung
+// Gebogenes Board: Schattenriss jedes Bauteils in Draufsicht (x, y), Vorderansicht (x, z) und Seitenansicht von links (y, z)
+function bentViews(assembly) {
+  const out = [];
+  for (const a of assembly) {
+    if (!['rail', 'alu', 'printed', 'brace', 'panel', 'psu'].includes(a.role)) continue;
+    const m = M.Manifold.ofMesh(new M.Mesh({ numProp: 3, vertProperties: a.mesh.positions, triVerts: a.mesh.indices }));
+    const bb = m.boundingBox();
+    const shadow = cs => polysOf(cs.simplify(0.1));
+    out.push({
+      role: a.role, tag: a.tag || '', box: [...bb.min, ...bb.max],
+      top: shadow(m.project()),
+      front: shadow(m.rotate([-90, 0, 0]).project()),
+      side: shadow(m.rotate([0, 90, 0]).project()).map(pg => pg.map(([u, v]) => [v, u])),
+    });
+  }
+  return out;
+}
+
+// Schnitt durch die Platte (Bauart C) quer zu den Rippen, in Hangkoordinaten (a, b): Rippen, Platte und Querstreben;
+// die Schnittebene liegt in einem Kabelschlitz des ersten Stegs, damit die Schlitze sichtbar werden.
+function plateSectionData(G) {
+  const { p, rails, w, h } = G, pt = p.plateT, n = rails.length;
+  const bays = railBays(G), bay = bays[Math.floor(bays.length / 2)];
+  const seams = new Set((G.plateStrips || []).filter(st => st.seamHi !== null).map(st => st.rails[st.rails.length - 1]));
+  const ribH = Math.min(h - 2, Math.max(pt + 2, pt + 6));
+  const rows = [];
+  for (let i = 0; i + 1 < n; i++) rows.push(seams.has(i) ? { slots: [], bridges: [] } : slotRow(G, bay, i, rails[i] + w / 2, rails[i + 1] - w / 2));
+  const first = rows.find(r => r.slots.length);
+  const xc = first ? (first.slots[0].x0 + first.slots[0].x1) / 2 : (bay.faceL + bay.faceR) / 2;
+  const parts = rails.map(a => printedSection(G).translate([a, 0]));
+  for (let i = 0; i + 1 < n; i++) {
+    const a0 = rails[i] + w / 2, a1 = rails[i + 1] - w / 2;
+    const slot = rows[i].slots.find(sl => xc >= sl.x0 && xc <= sl.x1);
+    const inBridge = rows[i].bridges.some(br => xc >= br.x0 && xc <= br.x1);
+    let web = rect(a0 - 0.5, -pt, a1 + 0.5, 0);
+    if (inBridge) web = csUnion([web, rect(a0, -ribH, a1, 0)]);
+    if (slot) web = web.subtract(rect(slot.a0, -pt - 1, slot.a1, 1));
+    parts.push(web);
+  }
+  return { polys: polysOf(csUnion(parts)), a0: rails[0] - w / 2, a1: rails[n - 1] + w / 2, xc };
+}
 function drawingData(G, prof2D, cuts) {
   const { p, w, h } = G;
   const sec = G.alu ? aluSection(G.prof) : printedSection(G);
@@ -1665,7 +1707,7 @@ function drawingData(G, prof2D, cuts) {
     mode: p.mode, W: p.W, D: G.Dtot, hF: p.hF, hB: G.hBlast, angle: deg(G.alpha), tiers: G.nTiers, capT: p.capT, supT: p.supT, pocket: p.pocket,
     supports: G.supports, railX0: G.railX0, railLen: G.railLen, w, h,
     profileLabel: G.alu ? tr('i.profileAlu', { label: G.prof.label }) : G.plate ? tr('i.profilePlate', { t: num(p.plateT), w: num(w), h: num(h) }) : tr('i.profileRail', { w: num(w), h: num(h), wall: num(p.railWall) }),
-    outline: polysOf(prof2D), notches: polysOf(notchCS(G)), rails, section: secPolys, cb,
+    outline: polysOf(prof2D), notches: polysOf(notchCS(G)), rails, section: secPolys, plateSection: G.plate ? plateSectionData(G) : null, cb,
     cuts: cuts.map(c => ({ c: c.c, dd: c.dd, tails: c.tails, splice: c.splice, top: topAtY(G, c.c) })),
     braces: G.braces, back: G.back ? { t: G.back.t, cutouts: G.back.cutouts, seams: G.back.seams, text: G.back.text ? { lines: G.back.text.lines, size: G.back.text.size, font: p.textFont, mode: p.textMode } : null } : null,
     plate: G.plate ? { t: p.plateT, slots: plateSlots(G).map(q => ({ x0: q.x0, x1: q.x1, y0: G.toYZ(q.a0, 0)[0], y1: G.toYZ(q.a1, 0)[0], r: q.r })),

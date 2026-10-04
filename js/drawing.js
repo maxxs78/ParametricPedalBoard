@@ -19,25 +19,33 @@ export function buildDrawing(result, params) {
   const push = s => out.push(s);
 
   // ---------------------------------------------------------------- Maßstab und Anordnung
+  // Gebogenes Board: Ausdehnung (x, y) aus den Schattenrissen der Draufsicht; sonst die abgewickelten Maße
+  const bent = d.bent && d.bent.length ? d.bent : null;
+  let ox = 0, oy = 0, W0 = d.W, D0 = d.D;
+  if (bent) {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const b of bent) for (const pg of b.top) for (const [x, y] of pg) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    ox = x0; oy = y0; W0 = x1 - x0; D0 = y1 - y0;
+  }
   const view = { x0: 28, y0: 16, x1: 410, y1: 196 };
   const dimPad = 16;
   let k = 1;
   for (const sc of SCALES) {
     const s = 1 / sc;
-    const wNeed = d.W * s + 30 + d.D * s + 2 * dimPad;
-    const hNeed = d.hB * s + 26 + d.D * s + 2 * dimPad;
+    const wNeed = W0 * s + 30 + D0 * s + 2 * dimPad;
+    const hNeed = d.hB * s + 26 + D0 * s + 2 * dimPad;
     if (wNeed <= view.x1 - view.x0 && hNeed <= view.y1 - view.y0) { k = sc; break; }
     k = sc;
   }
   const s = 1 / k;
   const fx = view.x0 + dimPad;                        // Vorderansicht: Ursprung links unten
   const fy = view.y0 + dimPad + d.hB * s;
-  const sx = fx + d.W * s + 30;                       // Seitenansicht (von links) rechts daneben
-  const tyBase = fy + 26 + d.D * s;                   // Draufsicht darunter (y nach oben)
+  const sx = fx + W0 * s + 30;                        // Seitenansicht (von links) rechts daneben
+  const tyBase = fy + 26 + D0 * s;                    // Draufsicht darunter (y nach oben)
 
-  const F = (x, z) => [fx + x * s, fy - z * s];
-  const Sd = (y, z) => [sx + (d.D - y) * s, fy - z * s];
-  const T = (x, y) => [fx + x * s, tyBase - y * s];
+  const F = (x, z) => [fx + (x - ox) * s, fy - z * s];
+  const Sd = (y, z) => [sx + (oy + D0 - y) * s, fy - z * s];
+  const T = (x, y) => [fx + (x - ox) * s, tyBase - (y - oy) * s];
 
   // ---------------------------------------------------------------- Zeichenhelfer
   const pts = arr => arr.map(p => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
@@ -78,6 +86,33 @@ export function buildDrawing(result, params) {
   };
   const title = (p, str) => text(p, str, 3.5, 'start', 'font-weight="bold"');
 
+  if (bent) {
+    // Gebogenes Board: Schattenriss jedes Bauteils, von hinten nach vorn übereinandergelegt (Maler-Algorithmus);
+    // verdeckte Teile (Streben, Netzteil, Laschen) gestrichelt darüber
+    const hid = b => b.role === 'brace' || b.role === 'psu' || b.tag === 'psu' || b.tag === 'tab';
+    const path = (polys, f) => polys.map(pg => 'M' + pg.map(q => f(q).map(v => v.toFixed(2)).join(',')).join(' L') + ' Z').join(' ');
+    const mid = (b, i) => (b.box[i] + b.box[i + 3]) / 2;
+    const show = (key, f, depth) => {
+      for (const b of bent.filter(q => !hid(q)).sort((u, v) => depth(u) - depth(v))) push(`<path class="v f" fill-rule="evenodd" d="${path(b[key], f)}"/>`);
+      for (const b of bent.filter(hid)) push(`<path class="h" d="${path(b[key], f)}"/>`);
+    };
+    // Vorderansicht (X–Z)
+    show('front', ([x, z]) => F(x, z), b => -mid(b, 1));
+    dimH(F(ox, d.hB), F(ox + W0, d.hB), F(0, d.hB)[1] - 8, f1(W0));
+    dimV(F(ox, 0), F(ox, d.hF), F(ox, 0)[0] - 7, f1(d.hF));
+    title([fx, view.y0 + 1], tr('dr.front'));
+    // Seitenansicht von links (Y–Z)
+    show('side', ([y, z]) => Sd(y, z), b => -mid(b, 0));
+    dimH(Sd(oy + D0, 0), Sd(oy, 0), fy + 7, f1(D0));
+    dimV(Sd(oy, 0), Sd(oy, d.hF), Sd(oy, 0)[0] + 7, f1(d.hF));
+    dimV(Sd(oy + D0, 0), Sd(oy + D0, d.hB), Sd(oy + D0, 0)[0] - 20, f1(d.hB));
+    title([sx, view.y0 + 1], tr('dr.side'));
+    // Draufsicht (X–Y)
+    show('top', ([x, y]) => T(x, y), b => mid(b, 2));
+    dimV(T(ox + W0, oy), T(ox + W0, oy + D0), T(ox + W0, 0)[0] + 9, f1(D0));
+    dimH(T(ox, oy), T(ox + W0, oy), tyBase + 7, f1(W0));
+    title([fx, fy + 20], tr('dr.top') + ' ' + tr('dr.bentSuffix', { a: f1(d.bendAngle) }));
+  } else {
   // ---------------------------------------------------------------- Vorderansicht (X–Z), Maler-Algorithmus
   const frontItems = [];
   for (const r of d.rails) {
@@ -193,16 +228,27 @@ export function buildDrawing(result, params) {
     dimV(T(0, ya), T(0, yb), T(0, 0)[0] - 7, f1(yb - ya));
   }
   title([fx, fy + 20], tr('dr.top'));
+  }
 
   // ---------------------------------------------------------------- Schnitt A–A (Schiene)
-  const ds = [2, 1.5, 1, 0.5].find(v => d.h * v <= 28 && d.w * v <= 80) || 0.5;
+  const ps = d.plateSection;                          // Bauart C: Schnitt quer durch Rippen und Platte
+  const secW = ps ? ps.a1 - ps.a0 : d.w;
+  const ds = [2, 1.5, 1, 0.5, 0.4, 0.25, 0.2, 0.1].find(v => d.h * v <= 28 && secW * v <= (ps ? 138 : 80)) || 0.1;
+  const secPath = (polys, f) => 'M' + polys.map(pg => pg.map(q => f(q).map(v => v.toFixed(2)).join(',')).join(' L') + ' Z').join(' M');
+  if (ps) {
+    const Dpl = (a, b) => [262 + 8 + (a - ps.a0) * ds, 223 - b * ds];
+    push(`<path class="v sec" fill-rule="evenodd" d="${secPath(ps.polys, ([a, b]) => Dpl(a, b))}"/>`);
+    dimH(Dpl(ps.a0, 0), Dpl(ps.a1, 0), Dpl(0, 0)[1] - 4, f1(secW));
+    dimV(Dpl(ps.a0, -d.h), Dpl(ps.a0, 0), Dpl(ps.a0, 0)[0] - 6, f1(d.h));
+  } else {
   const dox = 262 + 50, doy = 223 + d.h * ds;
   const Dp = (a, b) => [dox + (a + d.w / 2) * ds, doy - (b + d.h) * ds];
   push(`<path class="v sec" fill-rule="evenodd" d="${d.section.map(pg => 'M' + pts(pg.map(p => Dp(p[0], p[1]))).replace(/ /g, ' L') + ' Z').join(' ')}"/>`);
   dimH(Dp(-d.w / 2, 0), Dp(d.w / 2, 0), Dp(0, 0)[1] - 4, f1(d.w));
   dimV(Dp(d.w / 2, -d.h), Dp(d.w / 2, 0), Dp(d.w / 2, 0)[0] + 6, f1(d.h));
-  const detScale = ds >= 1 ? `${num(ds, 1)}:1` : `1:${1 / ds}`;
-  title([262, 212], tr('dr.section', { scale: detScale }));
+  }
+  const detScale = ds >= 1 ? `${num(ds, 1)}:1` : `1:${num(1 / ds, 1)}`;
+  title([262, 212], tr(ps ? 'dr.sectionPlate' : 'dr.section', { scale: detScale }));
   text([262, 216.5], d.profileLabel, 2.3, 'start');
 
   // ---------------------------------------------------------------- Stücklisten
@@ -253,7 +299,7 @@ export function buildDrawing(result, params) {
   cell(tbx + 111, tby + 12, tr('dr.slope'), `${f1(d.angle)}°`);
   cell(tbx, tby + 22, tr('dr.created'), fmtDate());
   cell(tbx + 74, tby + 22, tr('dr.sheet'), '1 / 1  ·  A3');
-  if (d.bendAngle) text([tbx + 2, tby + tbh + 4], tr('dr.bend', { a: f1(d.bendAngle), tot: f1(Math.abs(d.bendTotal)) }), 2.2, 'start');
+  if (d.bendAngle) text([tbx + 2, tby - 1.5], tr('dr.bend', { a: f1(d.bendAngle), tot: f1(Math.abs(d.bendTotal)) }), 2.2, 'start');
   // Projektionssymbol Methode 1
   {
     const cx = tbx + 118, cy = tby + 27.5;
