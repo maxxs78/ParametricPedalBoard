@@ -5,6 +5,8 @@
 // Die Schienen liegen auf der geneigten Oberseite. "Hangkoordinaten" (a, b):
 //   a = Weg entlang der Oberseite ab Vorderkante, b = Normale zur Oberseite (0 = Oberfläche).
 
+import { t as tr, fx, num } from './i18n.js';
+
 let M = null;
 const garbage = [];
 
@@ -63,18 +65,18 @@ const NUT_M4 = { af: 7, t: 3.2 };
 
 // --- Aluminium-Profile (Nut-Maße für Darstellung, Schrauben für Stückliste)
 export const PROFILES = {
-  '2020': { label: '20×20 Nut 6', w: 20, h: 20, so: 6.2, lip: 1.8, si: 11, sd: 6.1, core: 4.2,
+  '2020': { get label() { return tr('profile.2020.label'); }, w: 20, h: 20, so: 6.2, lip: 1.8, si: 11, sd: 6.1, core: 4.2,
     wide: [0], side: [0], cores: [0], endScrew: 'M5', floorScrew: 'M5',
-    nut: 'Nutenstein Nut 6 (B-Typ), M5', tnut: { l: 10, w: 10, t: 4 }, tap: 'M5' },
-  '2040': { label: '20×40 Nut 6 (liegend)', w: 40, h: 20, so: 6.2, lip: 1.8, si: 11, sd: 6.1, core: 4.2,
+    get nut() { return tr('profile.2020.nut'); }, tnut: { l: 10, w: 10, t: 4 }, tap: 'M5' },
+  '2040': { get label() { return tr('profile.2040.label'); }, w: 40, h: 20, so: 6.2, lip: 1.8, si: 11, sd: 6.1, core: 4.2,
     wide: [-10, 10], side: [0], cores: [-10, 10], endScrew: 'M5', floorScrew: 'M5',
-    nut: 'Nutenstein Nut 6 (B-Typ), M5', tnut: { l: 10, w: 10, t: 4 }, tap: 'M5' },
-  '3030': { label: '30×30 Nut 8', w: 30, h: 30, so: 8.2, lip: 2.2, si: 16.5, sd: 9, core: 6.8,
+    get nut() { return tr('profile.2040.nut'); }, tnut: { l: 10, w: 10, t: 4 }, tap: 'M5' },
+  '3030': { get label() { return tr('profile.3030.label'); }, w: 30, h: 30, so: 8.2, lip: 2.2, si: 16.5, sd: 9, core: 6.8,
     wide: [0], side: [0], cores: [0], endScrew: 'M8', floorScrew: 'M6',
-    nut: 'Nutenstein Nut 8 (B-Typ), M6', tnut: { l: 14, w: 15, t: 5 }, tap: 'M8' },
-  '4040': { label: '40×40 Nut 8', w: 40, h: 40, so: 8.2, lip: 4.3, si: 20, sd: 12.5, core: 6.8,
+    get nut() { return tr('profile.3030.nut'); }, tnut: { l: 14, w: 15, t: 5 }, tap: 'M8' },
+  '4040': { get label() { return tr('profile.4040.label'); }, w: 40, h: 40, so: 8.2, lip: 4.3, si: 20, sd: 12.5, core: 6.8,
     wide: [0], side: [0], cores: [0], endScrew: 'M8', floorScrew: 'M6',
-    nut: 'Nutenstein Nut 8 (B-Typ), M6', tnut: { l: 14, w: 15, t: 5 }, tap: 'M8' },
+    get nut() { return tr('profile.4040.nut'); }, tnut: { l: 14, w: 15, t: 5 }, tap: 'M8' },
 };
 
 export const DEFAULTS = {
@@ -133,12 +135,12 @@ function ext(cs, x0, x1) { return cs.extrude(x1 - x0).translate([0, 0, x0]).rota
 const polysOf = cs => cs ? cs.toPolygons().map(pg => pg.map(([x, y]) => [x, y])) : [];
 
 export function fitOnBed(sx, sy, sz, bx, by, bz) {
-  if (sz > bz + 1e-6) return { ok: false, reason: 'zu hoch' };
+  if (sz > bz + 1e-6) return { ok: false, reason: 'tooHigh' };
   for (let d = 0; d <= 90; d += 0.5) {
     const c = Math.cos(rad(d)), s = Math.sin(rad(d));
     if (sx * c + sy * s <= bx + 1e-6 && sx * s + sy * c <= by + 1e-6) return { ok: true, angle: d };
   }
-  return { ok: false, reason: 'zu groß' };
+  return { ok: false, reason: 'tooBig' };
 }
 function pickScrew(min, max = Infinity) {
   const s = SCREWS.find(v => v >= min);
@@ -166,16 +168,16 @@ function derive(p) {
   const coreOffsets = alu ? prof.cores : [0];
   const slotOffsets = alu ? prof.wide : [0];
 
-  if (p.nRails < 1) errors.push('Mindestens eine Schiene angeben.');
+  if (p.nRails < 1) errors.push(tr('e.minRail'));
 
   // --- Stufen (Multi-Tier): jede Stufe ein eigener flacher Keil, Stufe i+1 beginnt an der Absatzoberkante
   // von Stufe i (hF automatisch = vorheriges hB + Absatzhöhe). Stufe 1 verhält sich exakt wie das Board
   // ohne Stufen (volle Rückwärtskompatibilität bei tiers === 1).
   const nTiers = Math.max(1, Math.min(3, Math.round(p.tiers)));
-  if (nTiers > 1 && plate) errors.push('Mehrstufige Boards sind bei Bauart C (Druckplatte) noch nicht möglich. Wähle Bauart A oder B, oder stelle „Stufen“ auf 1.');
-  if (nTiers > 1 && p.bend) warnings.push('Die Biegung ist bei mehrstufigen Boards nicht möglich und wird ignoriert.');
-  if (nTiers > 1 && p.windows) warnings.push('Leichtbau-Fenster sind bei mehrstufigen Boards noch nicht möglich und werden ignoriert.');
-  if (nTiers > 1 && p.brace) warnings.push('Streben sind bei mehrstufigen Boards noch nicht möglich und werden ignoriert.');
+  if (nTiers > 1 && plate) errors.push(tr('e.tierPlate'));
+  if (nTiers > 1 && p.bend) warnings.push(tr('e.tierBend'));
+  if (nTiers > 1 && p.windows) warnings.push(tr('e.tierWindows'));
+  if (nTiers > 1 && p.brace) warnings.push(tr('e.tierBrace'));
 
   const tiersArr = [];
   { let y0 = 0, Lstart = 0, prevHb = p.hF;
@@ -189,17 +191,17 @@ function derive(p) {
       const rise_i = hB_i - hF_i;
       const alpha_i = Math.atan2(rise_i, D_i), ca_i = Math.cos(alpha_i), sa_i = Math.sin(alpha_i);
       const L_i = Math.hypot(D_i, rise_i);
-      const label = first ? '' : `Stufe ${ti + 1}: `;
-      if (rise_i < 0) errors.push(`${label}Die Rückseite muss mindestens so hoch sein wie die Vorderseite.`);
+      const label = first ? '' : tr('e.tierLabel', { n: ti + 1 });
+      if (rise_i < 0) errors.push(tr('e.riseNeg', { label }));
       const aMin_i = p.edge, aMax_i = (D_i - p.edge - (h + tol) * sa_i) / ca_i;
       const railsLocal = [];
       if (nRails_i === 1) railsLocal.push((aMin_i + aMax_i) / 2);
       else for (let i = 0; i < nRails_i; i++) railsLocal.push(aMin_i + w / 2 + i * (aMax_i - aMin_i - w) / (nRails_i - 1));
       const pitch_i = nRails_i > 1 ? (aMax_i - aMin_i - w) / (nRails_i - 1) : L_i;
       const gap_i = pitch_i - w;
-      if (nRails_i > 1 && gap_i < 2) errors.push(`${label}Die Schienen überlappen sich (Lücke ${gap_i.toFixed(1)} mm). Nimm weniger oder schmalere Schienen oder mach die Stufe tiefer.`);
-      else if (nRails_i > 1 && gap_i < 10) warnings.push(`${label}Die Kabellücke zwischen den Schienen beträgt nur ${gap_i.toFixed(1)} mm. Klinkenstecker passen dort kaum durch.`);
-      if (!first && aMax_i - aMin_i < w) errors.push(`Stufe ${ti + 1} ist zu flach: Es passen keine ${nRails_i} Schienen (mindestens 2) auf ${D_i.toFixed(0)} mm Tiefe. Mach die Stufe tiefer oder nimm schmalere Schienen.`);
+      if (nRails_i > 1 && gap_i < 2) errors.push(tr('e.railsOverlap', { label, gap: fx(gap_i, 1) }));
+      else if (nRails_i > 1 && gap_i < 10) warnings.push(tr('e.gapNarrow', { label, gap: fx(gap_i, 1) }));
+      if (!first && aMax_i - aMin_i < w) errors.push(tr('e.tierShallow', { n: ti + 1, rails: nRails_i, depth: fx(D_i) }));
       const tier = { idx: ti, y0, hF: hF_i, hB: hB_i, D: D_i, alpha: alpha_i, ca: ca_i, sa: sa_i, L: L_i, Lstart, gap: gap_i,
         railsLocal, railsGlobal: railsLocal.map(a => a + Lstart) };
       tiersArr.push(tier);
@@ -219,16 +221,16 @@ function derive(p) {
   const frontLow = toYZ(rails[0] - w / 2 - tol, -h - tol)[1];
   if (frontLow < FLOOR_T + 1) {
     const need = p.hF + (FLOOR_T + 1 - frontLow);
-    errors.push(`Die Vorderseite ist zu niedrig für ${h} mm hohe Schienen. Die vordere Höhe muss mindestens ${Math.ceil(need)} mm betragen.`);
+    errors.push(tr('e.frontLow', { h: num(h), min: Math.ceil(need) }));
   }
 
   const wallEnd = p.capT - p.pocket;
-  if (p.pocket < 6) errors.push('Die Taschentiefe in der Endkappe sollte mindestens 6 mm betragen.');
-  if (wallEnd < scr.cbDepth + 3) errors.push(`Die Endkappe ist zu dünn: Die Außenwand (Dicke − Taschentiefe = ${wallEnd} mm) braucht mindestens ${scr.cbDepth + 3} mm für den Schraubenkopf.`);
-  if (p.capT > bz || p.supT > bz) errors.push('Endkappen oder Stützen sind dicker als die Bauraumhöhe.');
-  if (Math.min(p.capT, p.supT) < 16) errors.push('Endkappen und Stützen müssen mindestens 16 mm dick sein, sonst fehlt Platz für die Verbindungslaschen.');
+  if (p.pocket < 6) errors.push(tr('e.pocketShallow'));
+  if (wallEnd < scr.cbDepth + 3) errors.push(tr('e.capThin', { wall: num(wallEnd), min: num(scr.cbDepth + 3) }));
+  if (p.capT > bz || p.supT > bz) errors.push(tr('e.capTall'));
+  if (Math.min(p.capT, p.supT) < 16) errors.push(tr('e.capThinSup'));
   const interior = p.W - 2 * p.capT;
-  if (interior < 60) errors.push('Das Board ist zu schmal.');
+  if (interior < 60) errors.push(tr('e.narrow'));
 
   // --- Stützen / Schienensegmente
   const railX0 = p.capT - p.pocket + 0.5;
@@ -269,7 +271,7 @@ function derive(p) {
     let lo = 0, hi = 2000;
     // Plattenmodus: kleinster Plattenstreifen = eine Rippe mit den halben Nachbarstegen
     const pw = plate && n > 1 ? Math.min(L, tiersArr[0].gap + w + 12) : w;
-    if (!fitOnBed(1, pw, h, bx, by, bz).ok) { errors.push(plate ? 'Ein Plattenstreifen passt nicht in den Bauraum. Nimm mehr Schienen (Rippen) oder ein größeres Bett.' : 'Das Schienenprofil passt nicht in den Bauraum.'); hi = 0; }
+    if (!fitOnBed(1, pw, h, bx, by, bz).ok) { errors.push(tr(plate ? 'e.stripNoFit' : 'e.profileNoFit')); hi = 0; }
     while (hi - lo > 0.5) { const m = (lo + hi) / 2; if (fitOnBed(m, pw, h, bx, by, bz).ok) lo = m; else hi = m; }
     maxRail = lo;
   }
@@ -285,8 +287,8 @@ function derive(p) {
     || (backMax !== null && Math.max(...backLens(layout(nBays))) > backMax))) nBays++;
   const supports = layout(nBays);
   if (backMax !== null && psuCount && psuNeed + p.supT > backMax)
-    errors.push(`Die Rückwand wird nur hinter den Stützen geteilt. Das Netzteilfeld (${(psuNeed + p.supT).toFixed(0)} mm) wäre breiter als das größte druckbare Rückwandteil (${backMax.toFixed(0)} mm). Schalte die Rückwand ab, nimm ein kürzeres Netzteil oder ein größeres Druckbett.`);
-  if (interior / nBays < p.supT + 20) errors.push('Es passen nicht genug Stützen zwischen die Endkappen. Das Bett ist für diese Schienenlänge zu klein.');
+    errors.push(tr('e.backSplit', { need: fx(psuNeed + p.supT), max: fx(backMax) }));
+  if (interior / nBays < p.supT + 20) errors.push(tr('e.fewSupports'));
 
   // Biegung: an jeder Stütze knickt das Board ab; die Vorderkante (dem Musiker zugewandt) bleibt dabei
   // praktisch auf einer Linie, die Hinterkante fächert nach hinten auf – konkav zum Musiker, wie ein
@@ -296,14 +298,14 @@ function derive(p) {
   // laufen auseinander – bis 20° möglich. Konvex (negativ) wird sie nach hinten dünner; dann dürfen sich die
   // Taschen der beiden Felder bei der hintersten Schiene nicht berühren.
   let bendA = 0;
-  if (p.bend && alu) warnings.push('Die Biegung ist bei Bauart B (durchgehendes Alu-Profil) nicht möglich. Wähle Bauart A oder C.');
+  if (p.bend && alu) warnings.push(tr('e.bendAlu'));
   if (p.bend && !alu && nTiers === 1) {
     const railYs = rails.map(a => toYZ(a, 0)[0]);
     const daMax = Math.max(0.01, ...railYs) + w / 2;
     const safeGap = Math.max(0, p.supT - 2 * p.pocket - 4);
     const maxNeg = Math.min(20, 2 * deg(Math.asin(Math.min(1, safeGap / (2 * daMax)))), 2 * deg(Math.atan((p.supT - 6) / (2 * p.D))));
     bendA = Math.max(-maxNeg, Math.min(20, p.bendAngle));
-    if (p.bendAngle < -maxNeg - 0.05) warnings.push(`Nach außen (konvex) wurde der Biegewinkel auf ${maxNeg.toFixed(1)}° je Stütze begrenzt: Die Stütze wird dabei nach hinten dünner, und die Taschen der hintersten Schiene würden sich sonst berühren. Mehr Winkel geht mit einer dickeren Stütze oder weniger tief liegenden Schienen.`);
+    if (p.bendAngle < -maxNeg - 0.05) warnings.push(tr('e.bendLimited', { max: fx(maxNeg, 1) }));
   }
   // Kette ab dem linken Rand aufbauen (Feld 0 = unverdreht), anschließend symmetrisch um die Board-Mitte
   // neu verankern – so öffnet sich der Bogen zu beiden Seiten gleich weit, statt einseitig aufzulaufen.
@@ -328,11 +330,11 @@ function derive(p) {
   const G = { p, alu, plate, prof, w, h, tol, alpha, ca, sa, L, bx, by, bz, rails, gap, toYZ, tierOf, tiers: tiersArr,
     Dtot, hBlast, nTiers, scr, coreOffsets, slotOffsets, railX0, railLen, supports, nBays, maxRail, errors, warnings, bendA, segT };
   if (!alu) G.joint = deriveJoint(G);
-  if (plate && p.plateT > h - 4) errors.push(`Die Platte (${p.plateT} mm) ist zu dick für ${h} mm hohe Rippen.`);
+  if (plate && p.plateT > h - 4) errors.push(tr('e.plateThick', { t: num(p.plateT), h: num(h) }));
   const psuTierIdx = Math.max(0, Math.min(tiersArr.length - 1, Math.round(p.psuTier) - 1));
   G.psuTier = tiersArr[psuTierIdx];
   G.psus = psuBaysOf(nBays).map(k => derivePsu(G, k, G.psuTier));
-  if (psuCount > G.psus.length) errors.push(`Es passen nur ${G.psus.length} Netzteile in die ${nBays} Felder.`);
+  if (psuCount > G.psus.length) errors.push(tr('e.psuCount', { n: G.psus.length, bays: nBays }));
   G.goodPsus = G.psus.filter(P => !P.bad);
   G.braces = [];                                   // folgt nach der Schnittplanung (generate)
   G.back = p.back ? deriveBack(G) : null;
@@ -348,7 +350,7 @@ function deriveJoint(G) {
   const m = 4, tanT = Math.tan(rad(Math.min(20, Math.max(5, p.dvAngle))));
   const wn = w - 2 * m;
   if (wn < 10) {
-    warnings.push('Die Schienen sind zu schmal für den Schwalbenschwanz (mindestens 18 mm). Sie werden nur gesteckt und verschraubt.');
+    warnings.push(tr('e.dovetailNarrow'));
     return off;
   }
   return { on: true, m, tanT, wn };
@@ -430,22 +432,22 @@ function derivePsu(G, bayIdx, tier) {
   for (const xl of screwXl) psu.screwXs.push(x0 + xl, x1 - xl);
 
   if (holes.length < 2) {
-    errors.push('Netzteilhalter: Es gibt keine zwei Schienen zum Anschrauben. Verschiebe das Netzteil oder mach es schmaler.');
+    errors.push(tr('e.psuNoRails'));
     psu.bad = true; return psu;
   }
   const pts = [[aL - t, bIn - t], [aR, bIn - t], [pa0, bTop - tp], [pa1, bTop - tp]];
   const zMin = Math.min(...pts.map(([a, b]) => G.toYZ(a, b)[1]));
   if (zMin < 1) {
-    errors.push(`Das Netzteil ist an dieser Stelle zu hoch, es fehlen ${(1 - zMin).toFixed(1)} mm Bodenfreiheit. Schieb es weiter nach hinten, erhöhe die Rückseite oder wähle ein flacheres Netzteil.`);
+    errors.push(tr('e.psuTooHigh', { mm: fx(1 - zMin, 1) }));
     psu.bad = true;
   }
   if (pl.yMax > tier.y0 + tier.D + 0.01 || G.toYZ(pa0, bTop - tp)[0] < 1) {
-    errors.push('Der Netzteilhalter ragt vorne oder hinten über das Board hinaus.');
+    errors.push(tr('e.psuOverhang'));
     psu.bad = true;
   }
   const [b0, b1] = bays[bayIdx];
   if (x0 - t < b0 + 1 || x1 + t > b1 - 1) {
-    errors.push(`Das Netzteil passt mit Halter (${(p.psuL + 2 * t + 1).toFixed(0)} mm) nicht in Feld ${bayIdx + 1}, dort sind nur ${(b1 - b0).toFixed(0)} mm frei. Erhöhe die maximale Spannweite oder mach das Board breiter.`);
+    errors.push(tr('e.psuNoFit', { need: fx(p.psuL + 2 * t + 1), bay: bayIdx + 1, free: fx(b1 - b0) }));
     psu.bad = true;
   }
   return psu;
@@ -483,7 +485,7 @@ function deriveBraces(G, cuts) {
   for (const y0 of want) {
     let best = null;
     for (let d = 0; d < p.D && best === null; d += 1) for (const y of [y0 - d, y0 + d]) if (best === null && valid(y, out)) best = y;
-    if (best === null) warnings.push('Für eine Strebe gibt es keine freie Position (Netzteil, Gummifüße oder Schrauben im Weg). Sie entfällt.');
+    if (best === null) warnings.push(tr('e.braceNone'));
     else out.push(best);
   }
   return out.sort((u, v) => u - v).map(y => ({ y, w: bw, h: bh, z0 }));
@@ -508,13 +510,13 @@ function deriveBack(G) {
   const zHigh = hB - (h + tol) / lastCa - FLOOR_T - 6;
   const zs = zHigh - zLow >= 15 ? [zLow, zHigh] : [Math.max(6, (zLow + zHigh) / 2)];
   const depth = 10;                                                // Vorbohrung, Fenster halten Abstand
-  if (!fitOnBed(20, hB, t, G.bx, G.by, G.bz).ok) { errors.push('Die Rückwand passt nicht aufs Druckbett. Die hintere Höhe ist zu groß für den Bauraum.'); return null; }
+  if (!fitOnBed(20, hB, t, G.bx, G.by, G.bz).ok) { errors.push(tr('e.backNoFitH')); return null; }
   // Teilung ausschließlich hinter den Stützen (dort wird jedes Teil mit zwei Schraubenreihen befestigt)
   const seams = G.supports.map(x => ({ x, type: 'sup' }));
   const edges = [0, ...G.supports, p.W];
   for (let k = 0; k + 1 < edges.length; k++) {
     const wd = edges[k + 1] - edges[k];
-    if (!fitOnBed(wd, hB, t, G.bx, G.by, G.bz).ok) { errors.push(`Das Rückwandteil zwischen den Stützen (${wd.toFixed(0)} mm) passt nicht aufs Druckbett. Verringere die maximale Spannweite, damit mehr Stützen gesetzt werden.`); return null; }
+    if (!fitOnBed(wd, hB, t, G.bx, G.by, G.bz).ok) { errors.push(tr('e.backPieceNoFit', { w: fx(wd) })); return null; }
   }
   seams.sort((u, v) => u.x - v.x);
   const tw = Math.min(14, hB * 0.22);
@@ -530,7 +532,7 @@ function layoutText(G, cutouts, sx) {
   while (lines.length && !lines[lines.length - 1]) lines.pop();
   if (!lines.length) return null;
   const shaped = lines.map(l => (l ? (textShaper ? textShaper(l, p.textFont) : null) : { polys: [], x0: 0, x1: 0 }));
-  if (shaped.some(x => !x)) { warnings.push('Die Schriftart für den Schriftzug ist nicht geladen (keine Verbindung?). Der Schriftzug entfällt.'); return null; }
+  if (shaped.some(x => !x)) { warnings.push(tr('e.fontMissing')); return null; }
   let free = [[4, p.W - 4]];
   for (const [u, v] of [...cutouts.map(c => [c.x0 - 6, c.x1 + 6]), ...sx.map(x => [x - 8, x + 8])]) {
     free = free.flatMap(([a, b]) => (v <= a || u >= b ? [[a, b]] : [[a, u], [v, b]].filter(([m, n]) => n - m > 1)));
@@ -542,8 +544,8 @@ function layoutText(G, cutouts, sx) {
   const unitsH = 1 + (lines.length - 1) * lead + 0.3;               // inkl. Unterlängen
   const wUnits = Math.max(0.01, ...shaped.map(x => x.x1 - x.x0));
   const sz = Math.min(p.textSize, (fb - fa - 8) / wUnits, (zHi - zLo) / unitsH);
-  if (sz < 4) { warnings.push('Für den Schriftzug ist auf der Rückwand zu wenig Platz (Schrifthöhe unter 4 mm). Er entfällt.'); return null; }
-  if (sz < p.textSize - 0.05) warnings.push(`Der Schriftzug wurde auf ${sz.toFixed(1)} mm Versalhöhe verkleinert, damit er neben Aussparungen und Schrauben auf die Rückwand passt.`);
+  if (sz < 4) { warnings.push(tr('e.textNoSpace')); return null; }
+  if (sz < p.textSize - 0.05) warnings.push(tr('e.textShrunk', { h: fx(sz, 1) }));
   const cx = (fa + fb) / 2, zTop = (zLo + zHi) / 2 + sz * unitsH / 2;
   const polys = [];
   shaped.forEach((sh, i) => {
@@ -1092,16 +1094,16 @@ function backPieces(G) {
 //   Bajonett: quadratischer Hals mit Querriegel; längs in die Öffnung stecken, Pedal um 90° drehen – der Riegel
 //             greift unter beide Kanten, Rastnocken fallen in den Hohlraum der Schiene bzw. in die untere Nut.
 export const CLIP_SIZES = {
-  mini: { label: 'Mini (Mooer, TC Mini …)', w: 42, d: 94 },
-  '1590a': { label: '1590A', w: 39, d: 93 },
-  '1590b': { label: '1590B (MXR u. a.)', w: 60, d: 112 },
-  '125b': { label: '125B', w: 66, d: 122 },
-  boss: { label: 'Boss Kompakt', w: 73, d: 129 },
-  '1590bb': { label: '1590BB', w: 94, d: 120 },
-  '1590dd': { label: '1590DD / Doppel', w: 188, d: 120 },
-  custom: { label: 'Eigene Maße', w: null, d: null },
+  mini: { get label() { return tr('clipsize.mini'); }, w: 42, d: 94 },
+  '1590a': { get label() { return tr('clipsize.1590a'); }, w: 39, d: 93 },
+  '1590b': { get label() { return tr('clipsize.1590b'); }, w: 60, d: 112 },
+  '125b': { get label() { return tr('clipsize.125b'); }, w: 66, d: 122 },
+  boss: { get label() { return tr('clipsize.boss'); }, w: 73, d: 129 },
+  '1590bb': { get label() { return tr('clipsize.1590bb'); }, w: 94, d: 120 },
+  '1590dd': { get label() { return tr('clipsize.1590dd'); }, w: 188, d: 120 },
+  custom: { get label() { return tr('clipsize.custom'); }, w: null, d: null },
 };
-export const CLIP_TYPES = { spring: 'Federclip', bayonet: 'Bajonett' };
+export const CLIP_TYPES = { get spring() { return tr('cliptype.spring'); }, get bayonet() { return tr('cliptype.bayonet'); } };
 const CLIP_PT = 5;          // Grundplatte
 const CLIP_FT = 2.5;        // Flansch des Einsatzes in der Tasche der Grundplatte
 const CLIP_SCREW = 12;      // Senkkopfschraube 4×12 (Grundplatte → Einsatz)
@@ -1114,11 +1116,11 @@ export function clipDims(c) {
 // Öffnung, in die der Einsatz greift: Breite o (quer, a) und Materialdicke d darüber (Griffhöhe)
 function clipSpec(G) {
   const { p } = G;
-  if (G.nTiers > 1) return { err: 'PedalClips sind bei mehrstufigen Boards noch nicht möglich.' };
-  if (G.rails.length < 2) return { err: 'PedalClips brauchen mindestens zwei Schienen (die Lücke dazwischen hält den Clip).' };
+  if (G.nTiers > 1) return { err: tr('e.clipTiers') };
+  if (G.rails.length < 2) return { err: tr('e.clipRails') };
   if (G.plate) {
     const sh = Math.min(p.slotH, G.gap - 12);
-    return sh >= 8 ? { kind: 'slot', o: sh, d: p.plateT } : { err: 'Die Kabelschlitze sind zu schmal für PedalClips.' };
+    return sh >= 8 ? { kind: 'slot', o: sh, d: p.plateT } : { err: tr('e.clipSlotNarrow') };
   }
   return { kind: 'gap', o: G.gap, d: G.h };
 }
@@ -1126,7 +1128,7 @@ function clipProfile(G, S, type) {
   const { tol } = G;
   if (type === 'bayonet') {
     const s = Math.min(20, (S.o - 2 * tol - 0.6) / Math.SQRT2);       // Diagonale muss beim Drehen durch die Öffnung
-    if (s < 8) return { err: `Die Öffnung (${S.o.toFixed(1)} mm) ist zu schmal für den Bajonett-Clip (mindestens 12 mm).` };
+    if (s < 8) return { err: tr('e.clipBayonetNarrow', { o: fx(S.o, 1) }) };
     const bR = -S.d - tol, cT = 5;
     let Lx, nub = null;
     if (S.kind === 'slot') Lx = Math.min(G.gap - 2, S.o + 20);
@@ -1151,7 +1153,7 @@ function clipProfile(G, S, type) {
   const armT = 2.4, slit = 1.8, ov = 1.4, armLen = 16, flT = 3;
   const Ao = S.o / 2 - tol;
   const C = Math.min(6, Ao - armT - slit);
-  if (C < 3.5) return { err: `Die Öffnung (${S.o.toFixed(1)} mm) ist zu schmal für den Federclip (mindestens 17 mm).` };
+  if (C < 3.5) return { err: tr('e.clipSpringNarrow', { o: fx(S.o, 1) }) };
   const bRet = -S.d - 0.2;
   const armTop = -S.d + Math.min(1.5, S.d - 0.8);
   const bFt = armTop - armLen, bBot = bFt - flT;
@@ -1275,11 +1277,11 @@ export function generate(params) {
     // ---- Seitenteile
     const plan = planCuts(G, Math.max(p.capT, p.supT));
     if (!plan.ok) {
-      G.errors.push('Die Seitenteile passen auch geteilt nicht aufs Druckbett. Der Bauraum ist zu klein oder das Board zu hoch.');
+      G.errors.push(tr('e.sidesNoFit'));
       return result;
     }
     const cuts = plan.cuts;
-    if (cuts.some(c => !c.splice)) G.warnings.push('An mindestens einer Teilungsstelle ist das Seitenteil zu niedrig für eine Verbindungslasche. Diese Stelle wird nur verklebt.');
+    if (cuts.some(c => !c.splice)) G.warnings.push(tr('e.spliceLow'));
     G.braces = (p.brace && G.nTiers === 1) ? deriveBraces(G, cuts) : [];
     const prof2D = sideProfile(G, cuts);
     const endSolid = sideSolid(G, 'end', prof2D, cuts);
@@ -1287,20 +1289,20 @@ export function generate(params) {
     const endPieces = splitPieces(G, endSolid, p.capT, cuts);
     const supPieces = supSolid ? splitPieces(G, supSolid, p.supT, cuts) : [];
     const np = endPieces.length;
-    const suffix = i => np > 1 ? ` · Teil ${i + 1}/${np}` : '';
+    const suffix = i => np > 1 ? tr('p.partOf', { i: i + 1, n: np }) : '';
 
     const Tn = G.segT.length - 1;                            // Index des letzten Feldes (rechte Endkappe)
     endPieces.forEach((pc, i) => {
       const flatL = pc.rotate([0, -90, 0]);
-      result.parts.push(printPart(G, flatL, `Endkappe links${suffix(i)}`, 1, { group: 'side' }));
-      result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), `Endkappe rechts${suffix(i)}`, 1, { group: 'side' }));
+      result.parts.push(printPart(G, flatL, tr('p.capLeft') + suffix(i), 1, { group: 'side', short: tr('p.capLeft') }));
+      result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), tr('p.capRight') + suffix(i), 1, { group: 'side', short: tr('p.capRight') }));
       result.assembly.push({ mesh: toMesh(bendMesh(G.segT[0], pc)), role: 'printed', explode: bendVec(G.segT[0], [-1, 0, 0]) });
       result.assembly.push({ mesh: toMesh(bendMesh(G.segT[Tn], pc.mirror([1, 0, 0]).translate([p.W, 0, 0]))), role: 'printed', explode: bendVec(G.segT[Tn], [1, 0, 0]) });
     });
     supPieces.forEach((pc, i) => {
       // Keil: zum Drucken so zurückdrehen, dass die linke Außenfläche flach aufs Bett kommt
       const flat = G.bendA ? pc.translate([-p.supT / 2, 0, 0]).rotate([0, 0, -G.bendA / 2]).translate([p.supT / 2, 0, 0]) : pc;
-      result.parts.push(printPart(G, flat.rotate([0, -90, 0]), `Stütze${suffix(i)}`, G.supports.length, { group: 'side' }));
+      result.parts.push(printPart(G, flat.rotate([0, -90, 0]), tr('p.support') + suffix(i), G.supports.length, { group: 'side', short: tr('p.support') }));
       // Stütze sitzt auf der Winkelhalbierenden ihrer beiden Felder (Feld k um −α/2 um die Vorderkante gedreht)
       G.supports.forEach((c, k) => {
         const mid = m => bendMesh(G.segT[k], G.bendA ? bendMesh(localWedgeT(G, c, 0, -G.bendA / 2), m) : m);
@@ -1319,7 +1321,7 @@ export function generate(params) {
       if (!c.splice) return;
       const sp = c.splice;
       const plate = spliceSolid(G, sp);
-      result.parts.push(printPart(G, plate, `Verbindungslasche ${k + 1}`, sides.length, { group: 'side' }));
+      result.parts.push(printPart(G, plate, tr('p.tab', { n: k + 1 }), sides.length, { group: 'side', short: tr('p.tab', { n: k + 1 }) }));
       for (const sd of sides) {
         const T2 = G.segT[sd.bay];
         const wm = m0 => (sd.wedge ? bendMesh(T2, bendMesh(sd.wedge, m0)) : bendMesh(T2, m0));
@@ -1371,7 +1373,7 @@ export function generate(params) {
     } else if (G.plate) {
       const bossOf = ri => G.goodPsus.filter(P => P.holes.some(hh => hh.i === ri)).flatMap(P => P.screwXs);
       const strips = plateStrips(G);
-      if (!strips) { G.errors.push('Die Platte lässt sich nicht in druckbare Streifen teilen. Nimm mehr Schienen (Rippen) oder ein größeres Druckbett.'); return result; }
+      if (!strips) { G.errors.push(tr('e.plateNoStrips')); return result; }
       const groups = new Map();
       railBays(G).forEach(bay => strips.forEach((st, j) => {
         const len = bay.x1 - bay.x0;
@@ -1384,10 +1386,10 @@ export function generate(params) {
         result.assembly.push({ mesh: toMesh(bendMesh(G.segT[bay.idx], place(g.seg, 0, bay.x0))), role: 'rail', explode: bendVec(G.segT[bay.idx], railEx) });
       }));
       for (const g of groups.values()) {
-        const pos = { 'cap-sup': 'links', 'sup-sup': 'Mitte', 'sup-cap': 'rechts', 'cap-cap': 'durchgehend' }[g.kind];
-        const nm = `Platte ${pos} · Streifen ${g.j + 1}/${strips.length} · ${g.len.toFixed(0)} mm${g.bosses ? ' (mit Befestigung Netzteil)' : ''}`;
-        const piece = printPart(G, g.seg.rotate([180, 0, 0]), nm, g.qty, { group: 'rail' });
-        if (!piece.fit.ok) G.errors.push(`Der Plattenstreifen „${nm}“ passt nicht aufs Druckbett.`);
+        const pos = tr({ 'cap-sup': 'p.pos.left', 'sup-sup': 'p.pos.mid', 'sup-cap': 'p.pos.right', 'cap-cap': 'p.pos.full' }[g.kind]);
+        const nm = tr('p.strip', { pos, j: g.j + 1, n: strips.length, len: fx(g.len) }) + (g.bosses ? tr('p.withPsu') : '');
+        const piece = printPart(G, g.seg.rotate([180, 0, 0]), nm, g.qty, { group: 'rail', short: tr('p.stripShort', { pos }) });
+        if (!piece.fit.ok) G.errors.push(tr('e.stripNoFit2', { nm }));
         result.parts.push(piece);
       }
       G.plateStrips = strips;
@@ -1407,9 +1409,9 @@ export function generate(params) {
       }));
       let idx = 1;
       for (const g of groups.values()) {
-        const pos = { 'cap-sup': 'links', 'sup-sup': 'Mitte', 'sup-cap': 'rechts', 'cap-cap': 'durchgehend' }[g.kind];
-        const nm = `Schiene ${idx++} ${pos} · ${g.len.toFixed(0)} mm${g.bosses ? ' (mit Befestigung Netzteil)' : ''}`;
-        result.parts.push(printPart(G, g.seg.rotate([180, 0, 0]), nm, g.qty, { group: 'rail' }));
+        const pos = tr({ 'cap-sup': 'p.pos.left', 'sup-sup': 'p.pos.mid', 'sup-cap': 'p.pos.right', 'cap-cap': 'p.pos.full' }[g.kind]);
+        const nm = tr('p.rail', { n: idx++, pos, len: fx(g.len) }) + (g.bosses ? tr('p.withPsu') : '');
+        result.parts.push(printPart(G, g.seg.rotate([180, 0, 0]), nm, g.qty, { group: 'rail', short: tr('p.railShort') }));
       }
     }
 
@@ -1417,10 +1419,10 @@ export function generate(params) {
     if (G.goodPsus.length) {
       const nP = G.goodPsus.length;
       const holder = psuHolder(G, G.goodPsus[0]);
-      const label = G.goodPsus[0].isBox ? 'Netzteil-Box' : 'Netzteil-Bügel';
+      const label = tr(G.goodPsus[0].isBox ? 'p.psuBox' : 'p.psuBracket');
       const flatL = holder.rotate([0, -90, 0]);
-      result.parts.push(printPart(G, flatL, `${label} links`, nP, { group: 'psu' }));
-      result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), `${label} rechts`, nP, { group: 'psu' }));
+      result.parts.push(printPart(G, flatL, tr('p.sideLeft', { label }), nP, { group: 'psu', short: tr('p.sideLeft', { label }) }));
+      result.parts.push(printPart(G, flatL.mirror([1, 0, 0]), tr('p.sideRight', { label }), nP, { group: 'psu', short: tr('p.sideRight', { label }) }));
       const psuT = G.psuTier;
       const down = [0, psuT.sa, -psuT.ca];
       // P.aL/P.aR/P.sP usw. sind globale a-Werte (inkl. Bogenlänge der vorherigen Stufen) – vor dem
@@ -1477,9 +1479,9 @@ export function generate(params) {
       }
       let idx = 1;
       for (const g of groups.values()) {
-        const pos = { 'cap-sup': 'links', 'sup-sup': 'Mitte', 'sup-cap': 'rechts', 'cap-cap': 'durchgehend' }[g.kind];
-        const piece = printPart(G, g.seg, `Strebe ${idx++} ${pos} · ${g.len.toFixed(0)} mm`, g.qty, { group: 'brace' });
-        if (!piece.fit.ok) G.errors.push(`Die Strebe (${g.len.toFixed(0)} mm) passt nicht aufs Druckbett. Verringere die maximale Spannweite, damit mehr Stützen gesetzt werden.`);
+        const pos = tr({ 'cap-sup': 'p.pos.left', 'sup-sup': 'p.pos.mid', 'sup-cap': 'p.pos.right', 'cap-cap': 'p.pos.full' }[g.kind]);
+        const piece = printPart(G, g.seg, tr('p.brace', { n: idx++, pos, len: fx(g.len) }), g.qty, { group: 'brace', short: tr('p.braceShort') });
+        if (!piece.fit.ok) G.errors.push(tr('e.braceNoFit', { len: fx(g.len) }));
         result.parts.push(piece);
       }
     }
@@ -1508,14 +1510,14 @@ export function generate(params) {
           }
         }
         const toPrint = m => (hasText && emb ? m.rotate([180, 0, 0]) : m);
-        const nm = `Rückwand${pieces.length > 1 ? ` · Teil ${i + 1}/${pieces.length}` : ''}${hasText ? ' · mit Schriftzug' : ''}`;
-        result.parts.push(printPart(G, toPrint(plate), nm, 1, { group: 'back' }, inlay ? toPrint(inlay) : null));
+        const nm = tr('p.back') + (pieces.length > 1 ? tr('p.partOf', { i: i + 1, n: pieces.length }) : '') + (hasText ? tr('p.withText') : '');
+        result.parts.push(printPart(G, toPrint(plate), nm, 1, { group: 'back', short: tr('p.back') }, inlay ? toPrint(inlay) : null));
         const T2 = G.segT[i];
         const toAsm = m => bendMesh(T2, m.rotate([90, 0, 0]).translate([0, G.Dtot + B.t, 0]));
         result.assembly.push({ mesh: toMesh(toAsm(plate)), role: 'panel', explode: bendVec(T2, [0, 1.1, 0]) });
         if (inlay) result.assembly.push({ mesh: toMesh(toAsm(inlay)), role: 'text', explode: bendVec(T2, [0, 1.1, 0]) });
       });
-      if (textCS && emb === false && p.textDepth > B.t - 1.2) G.warnings.push(`Die Gravur ist auf ${dT.toFixed(1)} mm begrenzt, damit hinter der Schrift 1,2 mm Wand stehen bleiben.`);
+      if (textCS && emb === false && p.textDepth > B.t - 1.2) G.warnings.push(tr('e.engraveLimited', { d: fx(dT, 1) }));
       for (const x of backScrewX(G)) for (const z of B.zs) {
         const T2 = G.segT[bayIdxForX(G, x)];
         hw.push({ type: 'screw', s: 'S4', len: B.screwLen, p: bendPt(T2, [x, G.Dtot + B.t, z]), dir: bendVec(T2, [0, -1, 0]), ex: bendVec(T2, [0, 1.7, 0]) });
@@ -1544,7 +1546,7 @@ export function generate(params) {
     const bays = railBays(G);
     let parkX = p.capT;
     clips.forEach((c, i) => {
-      const nm = `PedalClip ${i + 1}`;
+      const nm = tr('p.clip', { n: i + 1 });
       const type = CLIP_TYPES[c.type] ? c.type : 'spring';
       const pr = prs[type];
       result.clipPlaced[i] = null;
@@ -1552,11 +1554,11 @@ export function generate(params) {
       if (pr.err) { G.warnings.push(`${nm}: ${pr.err}`); return; }
       const dims = clipDims(c);
       const pl = clipPlate(G, pr, dims, !!c.rot);
-      if (!pl.ok) G.warnings.push(`${nm}: Die Grundplatte ist zu klein für den Clip-Einsatz.`);
+      if (!pl.ok) G.warnings.push(tr('e.clipBaseSmall', { nm }));
       const ins = insG.get(type) || { m: clipInsert(G, pr), qty: 0 };
       ins.qty++; insG.set(type, ins);
       const pk = `${type}|${pl.px.toFixed(1)}|${pl.pa.toFixed(1)}|${c.rot ? 1 : 0}`;
-      const pg = plG.get(pk) || { m: pl.m, qty: 0, name: `PedalClip-Grundplatte ${dims.label}${c.rot ? ' quer' : ''} · ${CLIP_TYPES[type]}` };
+      const pg = plG.get(pk) || { m: pl.m, qty: 0, name: tr('p.clipBase', { size: dims.label, rot: c.rot ? tr('p.rotated') : '' }) + ` · ${CLIP_TYPES[type]}`, short: tr('p.clipBase', { size: dims.label, rot: c.rot ? tr('p.rotated') : '' }).replace(/ \(.*\)$/, '') };
       pg.qty++; plG.set(pk, pg);
 
       // gespeicherte Position auflösen (bei geänderten Maßen auf den nächsten gültigen Punkt schieben)
@@ -1565,8 +1567,8 @@ export function generate(params) {
         const cand = result.clipSites[type].filter(s => s.key === c.at.site);
         let bd = Infinity;
         for (const s of cand) { const cx = Math.max(s.x0, Math.min(s.x1, +c.at.x || 0)); const d = Math.abs(cx - (+c.at.x || 0)); if (d < bd) { bd = d; site = s; x = cx; } }
-        if (!site) G.warnings.push(`${nm}: Die gespeicherte Position gibt es bei den aktuellen Maßen nicht mehr. Bitte neu platzieren.`);
-        else if (bd > 1) G.warnings.push(`${nm} wurde um ${bd.toFixed(0)} mm auf die nächste gültige Position verschoben.`);
+        if (!site) G.warnings.push(tr('e.clipPosGone', { nm }));
+        else if (bd > 1) G.warnings.push(tr('e.clipMoved', { nm, d: fx(bd) }));
       }
       if (site) {
         const T2 = G.segT[site.bay];
@@ -1576,10 +1578,10 @@ export function generate(params) {
         result.assembly.push({ mesh: toMesh(at(ins.m)), role: 'clip', clip: i, explode: bendVec(T2, n.map(v => v * 1.1)) });
         for (const xs of pr.screws) hw.push({ type: 'screw', s: 'S4K', len: CLIP_SCREW, p: bendPt(T2, [x + xs, ...Y(site.ac, CLIP_PT - 2.3)]), dir: bendVec(T2, n.map(v => -v)), ex: bendVec(T2, n.map(v => v * 2.1)) });
         foot.push({ i, bay: site.bay, x0: x - pl.px / 2, x1: x + pl.px / 2, a0: site.ac - pl.pa / 2, a1: site.ac + pl.pa / 2 });
-        if (site.ac - pl.pa / 2 < -1 || site.ac + pl.pa / 2 > G.L + 1) G.warnings.push(`${nm} ragt vorne oder hinten über das Board hinaus.`);
+        if (site.ac - pl.pa / 2 < -1 || site.ac + pl.pa / 2 > G.L + 1) G.warnings.push(tr('e.clipOverhang', { nm }));
         const bay = bays[site.bay];
         if (G.bendA && ((bay.cl !== null && x - pl.px / 2 < bay.cl) || (bay.cr !== null && x + pl.px / 2 > bay.cr)))
-          G.warnings.push(`${nm} liegt über einer Knickstelle des gebogenen Boards und kippelt dort. Schieb ihn weiter in die Feldmitte.`);
+          G.warnings.push(tr('e.clipKink', { nm }));
       } else {
         // noch nicht platziert: vor dem Board abgelegt
         const cx = parkX + pl.px / 2, cy = -40 - pl.pa / 2;
@@ -1594,10 +1596,10 @@ export function generate(params) {
       const A = foot[u], B = foot[v];
       if (G.bendA && A.bay !== B.bay) continue;
       if (Math.min(A.x1, B.x1) - Math.max(A.x0, B.x0) > 0.05 && Math.min(A.a1, B.a1) - Math.max(A.a0, B.a0) > 0.05)
-        G.warnings.push(`PedalClip ${A.i + 1} und PedalClip ${B.i + 1} überschneiden sich.`);
+        G.warnings.push(tr('e.clipOverlap', { a: A.i + 1, b: B.i + 1 }));
     }
-    for (const [type, g] of insG) result.parts.push(printPart(G, g.m.rotate([0, 90, 0]), `PedalClip-Einsatz ${CLIP_TYPES[type]}`, g.qty, { group: 'clip' }));
-    for (const g of plG.values()) result.parts.push(printPart(G, g.m.rotate([180, 0, 0]), g.name, g.qty, { group: 'clip' }));
+    for (const [type, g] of insG) result.parts.push(printPart(G, g.m.rotate([0, 90, 0]), tr('p.clipInsert', { type: CLIP_TYPES[type] }), g.qty, { group: 'clip', short: tr('p.clipInsert', { type: CLIP_TYPES[type] }) }));
+    for (const g of plG.values()) result.parts.push(printPart(G, g.m.rotate([180, 0, 0]), g.name, g.qty, { group: 'clip', short: g.short }));
     G.clipCount = clips.length;
 
     result.bom = buildBom(G, np, cuts, hw);
@@ -1606,7 +1608,7 @@ export function generate(params) {
     result.drawing = drawingData(G, prof2D, cuts);
   } catch (e) {
     console.error(e);
-    G.errors.push('Fehler bei der Geometrieberechnung: ' + e.message);
+    G.errors.push(tr('e.geomError', { msg: e.message }));
   } finally {
     collect();
   }
@@ -1637,7 +1639,7 @@ function drawingData(G, prof2D, cuts) {
   return {
     mode: p.mode, W: p.W, D: G.Dtot, hF: p.hF, hB: G.hBlast, angle: deg(G.alpha), tiers: G.nTiers, capT: p.capT, supT: p.supT, pocket: p.pocket,
     supports: G.supports, railX0: G.railX0, railLen: G.railLen, w, h,
-    profileLabel: G.alu ? `Alu-Profil ${G.prof.label}` : G.plate ? `gedruckte Platte ${p.plateT} mm mit Rippen ${w}×${h}` : `gedruckte Schiene ${w}×${h}, Wand ${p.railWall}`,
+    profileLabel: G.alu ? tr('i.profileAlu', { label: G.prof.label }) : G.plate ? tr('i.profilePlate', { t: num(p.plateT), w: num(w), h: num(h) }) : tr('i.profileRail', { w: num(w), h: num(h), wall: num(p.railWall) }),
     outline: polysOf(prof2D), notches: polysOf(notchCS(G)), rails, section: secPolys, cb,
     cuts: cuts.map(c => ({ c: c.c, dd: c.dd, tails: c.tails, splice: c.splice, top: topAtY(G, c.c) })),
     braces: G.braces, back: G.back ? { t: G.back.t, cutouts: G.back.cutouts, seams: G.back.seams, text: G.back.text ? { lines: G.back.text.lines, size: G.back.text.size, font: p.textFont, mode: p.textMode } : null } : null,
@@ -1652,40 +1654,38 @@ function buildBom(G, pieces, cuts, hw) {
   const { p } = G;
   const bom = [];
   const nR = G.rails.length, nS = G.supports.length;
-  const velcro = (nR * G.railLen / 1000).toFixed(2);
-  // Schrauben aus der Hardware-Liste zählen
+  const velcro = nR * G.railLen / 1000;
+  // Schrauben, Muttern und Nutensteine aus der Hardware-Liste zählen
   const count = new Map();
   for (const x of hw) {
-    let key;
+    let item, note = '';
     if (x.type === 'screw') {
       const s = SCREW[x.s];
-      key = x.s === 'S4' ? `Kunststoff-/Spanplattenschraube 4×${x.len} (DIN 7981)`
-        : x.s === 'S4K' ? `Senkkopf-Spanplattenschraube 4×${x.len} (DIN 7982)`
-        : x.s === 'M4L' ? `Linsenkopfschraube M4×${x.len} (ISO 7380)` : `Zylinderkopfschraube ${s.name}×${x.len} (ISO 4762)`;
-    } else if (x.type === 'nut') key = 'Sechskantmutter M4 (ISO 4032)';
-    else key = G.prof.nut;
-    count.set(key, (count.get(key) || 0) + 1);
+      if (x.s === 'S4') { item = tr('b.screw.s4', { len: x.len }); note = tr('b.note.pilot'); }
+      else if (x.s === 'S4K') {
+        item = tr('b.screw.s4k', { len: x.len });
+        if (x.len === CLIP_SCREW && G.clipCount) note = tr('b.note.clip') + (G.alu && G.braces.length ? tr('b.note.clipBrace') : '');
+      } else if (x.s === 'M4L') { item = tr('b.screw.m4l', { len: x.len }); note = tr('b.note.tab'); }
+      else item = tr('b.screw.cyl', { size: s.name, len: x.len });
+    } else if (x.type === 'nut') { item = tr('b.nut'); note = tr('b.note.nut'); }
+    else { item = G.prof.nut; note = tr('b.note.tnut'); }
+    const c = count.get(item) || { n: 0, note };
+    c.n++; count.set(item, c);
   }
-  const note = k => k.includes('Linsenkopf') ? 'Verbindungslaschen der Seitenteile'
-    : k.includes('Mutter') ? 'in die Sechskant-Taschen auf der Außenseite'
-    : k.startsWith('Nutenstein') ? 'Einschwenk-Nutensteine lassen sich nachträglich einsetzen (herstellerspezifisch, kein einheitliches DIN/ISO-Maß)'
-    : k.includes('Kunststoff') ? 'Vorbohrungen 3,2 mm sind in den Druckteilen'
-    : k.startsWith(`Senkkopf-Spanplattenschraube 4×${CLIP_SCREW} `) && G.clipCount ? 'PedalClips: Grundplatte an den Clip-Einsatz' + (G.alu && G.braces.length ? '; Alu-Streben' : '')
-    : '';
   if (G.alu) {
     const pr = G.prof;
-    bom.push({ item: `Alu-Profil ${pr.label}, schwarz eloxiert`, qty: nR, note: `Zuschnitt je ${G.railLen.toFixed(0)} mm (gesamt ${(nR * G.railLen / 1000).toFixed(2)} m), Kernbohrungen mit ${pr.tap}-Gewinde` });
+    bom.push({ item: tr('b.aluProfile', { label: pr.label }), qty: nR, note: tr('b.aluProfile.note', { len: fx(G.railLen), total: fx(nR * G.railLen / 1000, 2), tap: pr.tap }) });
     if (G.braces.length) {
-      const pos = braceHolesAlu(G).map(x => x - G.railX0).sort((u, v) => u - v).map(v => v.toFixed(0)).join(' / ');
-      bom.push({ item: 'Alu-Flachstab 20×5 mm (Strebe)', qty: G.braces.length, note: `Zuschnitt je ${G.railLen.toFixed(0)} mm; Bohrungen Ø4,5 bei ${pos} mm, Senkung Ø${(SCREW.S4K.hd + 0.4).toFixed(1).replace('.', ',')} (Kopf ${ALU_BRACE_SINK} mm unter der Leistenfläche)` });
+      const pos = braceHolesAlu(G).map(x => x - G.railX0).sort((u, v) => u - v).map(v => fx(v)).join(' / ');
+      bom.push({ item: tr('b.flat'), qty: G.braces.length, note: tr('b.flat.note', { len: fx(G.railLen), pos, cs: fx(SCREW.S4K.hd + 0.4, 1), sink: fx(ALU_BRACE_SINK, 1) }) });
     }
   }
-  for (const [k, v] of count) bom.push({ item: k, qty: v, note: note(k) });
-  if (p.feet) bom.push({ item: `Gummifüße selbstklebend Ø${p.footD} mm`, qty: 2 * (2 + nS), note: `Mulde ${p.footH} mm tief` });
-  bom.push({ item: 'Klettband, Flauschseite, selbstklebend', qty: `${velcro} m`, note: `Breite ≈ ${Math.min(G.w, 50)} mm` });
-  if (pieces > 1) bom.push({ item: 'Kleber (2K-Epoxid)', qty: '–', note: 'optional für die Schwalbenschwänze' });
-  if (G.clipCount) bom.push({ item: 'Klettband Hakenseite oder 3M Dual Lock', qty: `${G.clipCount} Stück`, note: 'je PedalClip ein Zuschnitt in Pedalgröße, verbindet Pedal und Grundplatte' });
-  if (G.goodPsus.length) bom.push({ item: 'Klettkabelbinder 12 mm', qty: 2 * G.goodPsus.length, note: 'sichert das Netzteil an der offenen Rückseite' });
+  for (const [item, c] of count) bom.push({ item, qty: c.n, note: c.note });
+  if (p.feet) bom.push({ item: tr('b.feet', { d: num(p.footD) }), qty: 2 * (2 + nS), note: tr('b.feet.note', { h: num(p.footH) }) });
+  bom.push({ item: tr('b.velcro'), qty: tr('b.velcro.qty', { m: fx(velcro, 2) }), note: tr('b.velcro.note', { w: num(Math.min(G.w, 50)) }) });
+  if (pieces > 1) bom.push({ item: tr('b.glue'), qty: '–', note: tr('b.glue.note') });
+  if (G.clipCount) bom.push({ item: tr('b.hook'), qty: tr('b.hook.qty', { n: G.clipCount }), note: tr('b.hook.note') });
+  if (G.goodPsus.length) bom.push({ item: tr('b.tie'), qty: 2 * G.goodPsus.length, note: tr('b.tie.note') });
   void cuts;
   return bom;
 }

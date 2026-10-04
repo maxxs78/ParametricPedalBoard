@@ -68,7 +68,7 @@ export function build3MF(plates, parts, opts) {
     const a1 = id++;
     objs.push(meshObj(a1, pt.mesh, roles.indexOf(pt.role)));
     const comps = [[a1, pt.name, bodyEx]];
-    if (pt.inlay) { const textEx = roles.indexOf('text') + 1; const a2 = id++; objs.push(meshObj(a2, pt.inlay, roles.indexOf('text'))); comps.push([a2, `${pt.name} – Schriftzug`, textEx]); }
+    if (pt.inlay) { const textEx = roles.indexOf('text') + 1; const a2 = id++; objs.push(meshObj(a2, pt.inlay, roles.indexOf('text'))); comps.push([a2, `${pt.name}${opts.inlaySuffix ?? ' – Schriftzug'}`, textEx]); }
     const oid = id++;
     objs.push(`<object id="${oid}" p:UUID="${uuid()}" name="${esc(pt.name)}" type="model"><components>${comps.map(([c]) => `<component objectid="${c}" p:UUID="${uuid()}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>`).join('')}</components></object>`);
     cfgObjs.push(`  <object id="${oid}">
@@ -130,11 +130,11 @@ ${inst.join('\n')}
 
   const date = new Date().toISOString().slice(0, 10);
   const model = `<?xml version="1.0" encoding="UTF-8"?>
-<model unit="millimeter" xml:lang="de-DE" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06" requiredextensions="p">
+<model unit="millimeter" xml:lang="${opts.locale || 'de-DE'}" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06" requiredextensions="p">
  <metadata name="Application">BambuStudio-02.00.00.00</metadata>
  <metadata name="BambuStudio:3mfVersion">1</metadata>
  <metadata name="Title">${esc(opts.title || '')}</metadata>
- <metadata name="Description">Erzeugt mit Parametric Pedal Board – ${plates.length} Druckplatte${plates.length === 1 ? '' : 'n'}</metadata>
+ <metadata name="Description">${esc(opts.description || 'Parametric Pedal Board')}</metadata>
  <metadata name="CreationDate">${date}</metadata>
  <metadata name="ModificationDate">${date}</metadata>
  <resources>

@@ -2,12 +2,14 @@
 // Ansichten: Vorderansicht, Seitenansicht von links (rechts daneben), Draufsicht (darunter),
 // Schnitt A–A durch eine Schiene, Stücklisten und Schriftfeld.
 
+import { t as tr, num, fmtDate } from './i18n.js';
+
 const SHEET = { w: 420, h: 297 };
 const SCALES = [1, 2, 2.5, 3, 4, 5, 7.5, 10, 15, 20, 25, 50];
 const LW = { vis: 0.5, thin: 0.25, hid: 0.3, dim: 0.18, frame: 0.7 };
 const FONT = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
 
-const f1 = v => (Math.round(v * 10) / 10).toLocaleString('de-DE', { maximumFractionDigits: 1 });
+const f1 = v => num(Math.round(v * 10) / 10, 1);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 export function buildDrawing(result, params) {
@@ -108,7 +110,7 @@ export function buildDrawing(result, params) {
     dimH(F(prev, 0), F(x, 0), chainY, f1(x - prev));
     prev = x;
   });
-  title([fx, view.y0 + 1], 'Vorderansicht');
+  title([fx, view.y0 + 1], tr('dr.front'));
 
   // ---------------------------------------------------------------- Seitenansicht von links (Y–Z)
   // Kontur mit Fenstern (Löcher werden über evenodd ausgespart)
@@ -158,7 +160,7 @@ export function buildDrawing(result, params) {
     push(`<path class="d" d="M${p1[0].toFixed(2)},${p1[1].toFixed(2)} A${R},${R} 0 0 1 ${p2[0].toFixed(2)},${p2[1].toFixed(2)}"/>`);
     text([o[0] - R * 0.55, o[1] - (R + 3) * Math.sin(a) - 1.8], `${f1(d.angle)}°`, 2.5, 'middle');
   }
-  title([sx, view.y0 + 1], 'Seitenansicht von links');
+  title([sx, view.y0 + 1], tr('dr.side'));
 
   // ---------------------------------------------------------------- Draufsicht (X–Y)
   for (const r of d.rails) {
@@ -184,13 +186,13 @@ export function buildDrawing(result, params) {
   }
   // Maße
   dimV(T(d.W, 0), T(d.W, d.D), T(d.W, 0)[0] + 9, f1(d.D));
-  dimH(T(d.railX0, 0), T(d.W - d.railX0, 0), tyBase + 7, `${f1(d.railLen)} (Schienenlänge)`);
+  dimH(T(d.railX0, 0), T(d.W - d.railX0, 0), tyBase + 7, tr('dr.railLen', { len: f1(d.railLen) }));
   if (d.rails.length > 1) {
     const r0 = d.rails[0], r1 = d.rails[1];
     const ya = (r0.top[0] + r0.top[1]) / 2, yb = (r1.top[0] + r1.top[1]) / 2;
     dimV(T(0, ya), T(0, yb), T(0, 0)[0] - 7, f1(yb - ya));
   }
-  title([fx, fy + 20], 'Draufsicht');
+  title([fx, fy + 20], tr('dr.top'));
 
   // ---------------------------------------------------------------- Schnitt A–A (Schiene)
   const ds = [2, 1.5, 1, 0.5].find(v => d.h * v <= 28 && d.w * v <= 80) || 0.5;
@@ -199,15 +201,15 @@ export function buildDrawing(result, params) {
   push(`<path class="v sec" fill-rule="evenodd" d="${d.section.map(pg => 'M' + pts(pg.map(p => Dp(p[0], p[1]))).replace(/ /g, ' L') + ' Z').join(' ')}"/>`);
   dimH(Dp(-d.w / 2, 0), Dp(d.w / 2, 0), Dp(0, 0)[1] - 4, f1(d.w));
   dimV(Dp(d.w / 2, -d.h), Dp(d.w / 2, 0), Dp(d.w / 2, 0)[0] + 6, f1(d.h));
-  const detScale = ds >= 1 ? `${String(ds).replace('.', ',')}:1` : `1:${1 / ds}`;
-  title([262, 212], `Schnitt Schiene (${detScale})`);
+  const detScale = ds >= 1 ? `${num(ds, 1)}:1` : `1:${1 / ds}`;
+  title([262, 212], tr('dr.section', { scale: detScale }));
   text([262, 216.5], d.profileLabel, 2.3, 'start');
 
   // ---------------------------------------------------------------- Stücklisten
   const tables = [
-    { x: 28, title: 'Druckteile', cols: [[10, 'Pos'], [10, 'Anz'], [66, 'Benennung'], [30, 'Maße (mm)']],
+    { x: 28, title: tr('dr.tbl.printed'), cols: [[10, tr('dr.col.pos')], [10, tr('dr.col.qty')], [66, tr('dr.col.name')], [30, tr('dr.col.size')]],
       rows: result.parts.map((pt, i) => [i + 1, pt.qty, pt.name, pt.size.map(v => Math.round(v)).join('×')]) },
-    { x: 148, title: 'Zukaufteile', cols: [[12, 'Menge'], [96, 'Benennung']],
+    { x: 148, title: tr('dr.tbl.bought'), cols: [[12, tr('dr.col.amount')], [96, tr('dr.col.name')]],
       rows: result.bom.map(b => [b.qty, b.item]) },
   ];
   for (const tb of tables) {
@@ -233,7 +235,7 @@ export function buildDrawing(result, params) {
       });
       yy += rh; line([tb.x, yy], [tb.x + width, yy], 'thin');
     }
-    if (tb.rows.length > rows.length) text([tb.x + 1, yy + 2.9], `… ${tb.rows.length - rows.length} weitere, siehe stueckliste.txt`, 2.2, 'start');
+    if (tb.rows.length > rows.length) text([tb.x + 1, yy + 2.9], tr('dr.more', { n: tb.rows.length - rows.length, file: tr('file.bomTxt') }), 2.2, 'start');
   }
 
   // ---------------------------------------------------------------- Schriftfeld
@@ -243,15 +245,15 @@ export function buildDrawing(result, params) {
   line([tbx, tby + 22], [tbx + tbw, tby + 22], 'thin');
   line([tbx + 74, tby + 12], [tbx + 74, tby + tbh], 'thin');
   line([tbx + 111, tby + 12], [tbx + 111, tby + tbh], 'thin');
-  text([tbx + 2, tby + 5], 'Benennung', 1.8, 'start');
-  text([tbx + 2, tby + 10.2], `Pedalboard ${d.W} × ${d.D} mm, Bauart ${d.mode === 'alu' ? 'B · Alu-Profile' : d.mode === 'plate' ? 'C · Druckplatte' : 'A · voll gedruckt'}`, 3.5, 'start', 'font-weight="bold"');
+  text([tbx + 2, tby + 5], tr('dr.tb.name'), 1.8, 'start');
+  text([tbx + 2, tby + 10.2], tr('dr.tb.title', { w: d.W, d: d.D, mode: tr(d.mode === 'alu' ? 'dr.modeB' : d.mode === 'plate' ? 'dr.modeC' : 'dr.modeA') }), 3.5, 'start', 'font-weight="bold"');
   const cell = (x, y, lab, val) => { text([x + 2, y + 3.2], lab, 1.8, 'start'); text([x + 2, y + 8.2], val, 3, 'start'); };
-  cell(tbx, tby + 12, 'Maße (B × T × H)', `${d.W} × ${d.D} × ${d.hF}–${d.hB} mm`);
-  cell(tbx + 74, tby + 12, 'Maßstab', `1:${String(k).replace('.', ',')}`);
-  cell(tbx + 111, tby + 12, 'Neigung', `${f1(d.angle)}°`);
-  cell(tbx, tby + 22, 'Erstellt', new Date().toLocaleDateString('de-DE'));
-  cell(tbx + 74, tby + 22, 'Blatt', '1 / 1  ·  A3');
-  if (d.bendAngle) text([tbx + 2, tby + tbh + 4], `Board an jeder Stütze um ${f1(d.bendAngle)}° gebogen (insgesamt ${f1(Math.abs(d.bendTotal))}°) – hier ungebogen (abgewickelt) dargestellt.`, 2.2, 'start');
+  cell(tbx, tby + 12, tr('dr.dims'), `${d.W} × ${d.D} × ${d.hF}–${d.hB} mm`);
+  cell(tbx + 74, tby + 12, tr('dr.scale'), `1:${num(k, 2)}`);
+  cell(tbx + 111, tby + 12, tr('dr.slope'), `${f1(d.angle)}°`);
+  cell(tbx, tby + 22, tr('dr.created'), fmtDate());
+  cell(tbx + 74, tby + 22, tr('dr.sheet'), '1 / 1  ·  A3');
+  if (d.bendAngle) text([tbx + 2, tby + tbh + 4], tr('dr.bend', { a: f1(d.bendAngle), tot: f1(Math.abs(d.bendTotal)) }), 2.2, 'start');
   // Projektionssymbol Methode 1
   {
     const cx = tbx + 118, cy = tby + 27.5;
@@ -261,7 +263,7 @@ export function buildDrawing(result, params) {
     line([cx - 2, cy], [cx + 15, cy], 'c');
     push(`</g>`);
   }
-  text([tbx + tbw - 2, tby + tbh + 4.5], `Parametric Pedal Board · ${params.bedX}×${params.bedY}×${params.bedZ} mm Bauraum`, 2, 'end');
+  text([tbx + tbw - 2, tby + tbh + 4.5], tr('dr.footer', { x: params.bedX, y: params.bedY, z: params.bedZ }), 2, 'end');
 
   // ---------------------------------------------------------------- Blatt
   const css = `

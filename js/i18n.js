@@ -22,7 +22,7 @@ export function detectLang() {
 export async function initI18n(code, loader) {
   lang = LANGS.includes(code) ? code : 'en';
   dict = await loader(lang);
-  fmtCache.clear();
+  fmtCache.clear(); nfxCache.clear();
 }
 
 export const has = key => dict[key] !== undefined;
@@ -30,7 +30,7 @@ export const has = key => dict[key] !== undefined;
 export function t(key, params) {
   let s = dict[key];
   if (s === undefined) {
-    if (!warned.has(key)) { warned.add(key); console.warn('i18n: fehlender Schlüssel', key); }
+    if (!warned.has(key)) { warned.add(key); console.warn('i18n: missing key', key); }
     s = key;
   }
   return params ? String(s).replace(/\{(\w+)\}/g, (m, k) => (k in params ? params[k] : m)) : String(s);
@@ -46,7 +46,15 @@ function nf(min, max) {
   if (!fmtCache.has(k)) fmtCache.set(k, new Intl.NumberFormat(LOCALE[lang], { minimumFractionDigits: min, maximumFractionDigits: max }));
   return fmtCache.get(k);
 }
+const nfxCache = new Map();
+function nfx(d) {
+  const k = `${lang}|${d}`;
+  if (!nfxCache.has(k)) nfxCache.set(k, new Intl.NumberFormat(LOCALE[lang], { minimumFractionDigits: d, maximumFractionDigits: d, useGrouping: false }));
+  return nfxCache.get(k);
+}
 export const fmt = (v, d = 0) => nf(d, d).format(Number(v));
 export const num = (v, d = 2) => nf(0, d).format(Number(v));
+// Technische Maße ohne Tausendertrennzeichen (z. B. 1395 mm statt 1.395 mm)
+export const fx = (v, d = 0) => nfx(d).format(Number(v));
 export const fmtDate = (d = new Date()) => new Date(d).toLocaleDateString(LOCALE[lang]);
 export const fmtDateTime = d => new Date(d).toLocaleString(LOCALE[lang], { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });

@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { initGeometry, generate, setTextShaper, DEFAULTS, PROFILES, SCREW, CLIP_SIZES, CLIP_TYPES } from './pedalboard.js';
 import { buildDrawing } from './drawing.js';
 import { build3MF, plateOrigin } from './threemf.js';
-import { t, tn, has, fmt, num, fmtDate, fmtDateTime, initI18n, detectLang, getLang, LANGS, LANG_STORE } from './i18n.js';
+import { t, tn, has, fmt, fmtDateTime, initI18n, detectLang, getLocale, LANG_STORE } from './i18n.js';
 
 const LANG = detectLang();
 await initI18n(LANG, async l => (await import(`./lang/${l}.js`)).default);
@@ -990,14 +990,14 @@ async function threeMF(idx) {
   const [sx, sy] = slicerBed();
   const dx = (sx - params.bedX) / 2, dy = (sy - params.bedY) / 2;
   const named = sel.map((pl, k) => {
-    const names = [...new Set(pl.items.map(it => result.parts[it.i].short || result.parts[it.i].name.split(' · ')[0].replace(/ \d+ (links|rechts|Mitte|durchgehend)$/, '').replace(/ \(.*\)$/, '')))];
+    const names = [...new Set(pl.items.map(it => result.parts[it.i].short))];
     const nm = t('threemf.plateName', { n: idx[k] + 1, names: names.slice(0, 2).join(', ') + (names.length > 2 ? ' …' : '') });
     return { name: nm, items: pl.items.map(it => ({ part: it.i, rot: it.rot, tx: it.tx + dx, ty: it.ty + dy, w: it.w, h: it.h })) };
   });
   const thumbs = [];
   for (const pl of sel) thumbs.push(await plateThumbs(pl));
   const files = build3MF(named, parts, {
-    bedX: sx, bedY: sy, thumbs,
+    bedX: sx, bedY: sy, thumbs, locale: getLocale(), inlaySuffix: t('threemf.inlaySuffix'), description: t('threemf.description', { plates: tn('threemf.nPlates', sel.length) }),
     title: t('threemf.title', { w: params.W, d: params.D, what: sel.length === 1 ? t('threemf.onePlate', { n: idx[0] + 1 }) : tn('threemf.nPlates', sel.length) }),
     colors: Object.fromEntries(['printed', 'rail', 'brace', 'panel', 'text', 'clip'].map(r => [r, look[r]])),
   });
