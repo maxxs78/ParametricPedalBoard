@@ -1,9 +1,13 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pedalboard Konfigurator</title>
+<title>Pedalboard Configurator</title>
+<meta name="description" content="Free parametric pedalboard generator: set the size, check the parts, export STL and 3MF files for 3D printing.">
+<link rel="alternate" hreflang="de" href="https://maxxs78.github.io/ParametricPedalBoard/?lang=de">
+<link rel="alternate" hreflang="en" href="https://maxxs78.github.io/ParametricPedalBoard/?lang=en">
+<link rel="alternate" hreflang="x-default" href="https://maxxs78.github.io/ParametricPedalBoard/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -83,6 +87,9 @@ button, input, select { font: inherit; color: inherit; }
 .modes button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .modes button:disabled { opacity: 0.45; cursor: not-allowed; }
 
+.langsw { justify-self: end; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 2px; }
+.langsw button { border: 0; background: transparent; padding: 2px 9px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--ink-2); }
+.langsw button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .chip {
   border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 3px 11px;
@@ -209,59 +216,60 @@ tr.sel td { background: var(--accent-soft); }
 </head>
 <body>
 <div class="app">
-  <aside class="side" aria-label="Parameter">
+  <aside class="side" data-i18n-aria="aria.params">
     <div class="brand">
-      <h1>Pedalboard Konfigurator</h1>
-      <p>Geneigtes Schienen-Board: Maße einstellen, Teile prüfen, STL-Dateien exportieren.</p>
+      <div class="langsw" role="group" aria-label="Language"><button type="button" data-lang="de">DE</button><button type="button" data-lang="en">EN</button></div>
+      <h1 data-i18n="app.title"></h1>
+      <p data-i18n="app.subtitle"></p>
     </div>
-    <div class="modes" role="group" aria-label="Bauart">
-      <button type="button" id="mode-print" data-mode="print"><b>A · Voll gedruckt</b><span>Seitenteile, Stützen und Schienen aus dem Drucker</span></button>
-      <button type="button" id="mode-alu" data-mode="alu"><b>B · Alu-Profile</b><span>Gedruckte Füße, Schienen aus Nutprofil</span></button>
-      <button type="button" id="mode-plate" data-mode="plate"><b>C · Druckplatte</b><span>Geschlitzte Platte mit Rippen, mehrteilig</span></button>
+    <div class="modes" role="group" data-i18n-aria="aria.mode">
+      <button type="button" id="mode-print" data-mode="print"><b data-i18n="mode.print"></b><span data-i18n="mode.print.desc"></span></button>
+      <button type="button" id="mode-alu" data-mode="alu"><b data-i18n="mode.alu"></b><span data-i18n="mode.alu.desc"></span></button>
+      <button type="button" id="mode-plate" data-mode="plate"><b data-i18n="mode.plate"></b><span data-i18n="mode.plate.desc"></span></button>
     </div>
-    <div class="presets" id="presets" aria-label="Vorlagen"></div>
+    <div class="presets" id="presets" data-i18n-aria="aria.presets"></div>
     <form id="form" autocomplete="off"></form>
-    <details class="grp" id="clips" open><summary>PedalClips <span class="pill warn">experimentell</span></summary></details>
+    <details class="grp" id="clips" open></details>
     <details class="grp" id="look" open></details>
     <details class="grp" id="saves"></details>
-    <p class="notes" style="margin-top:14px">Die Einstellungen werden in diesem Browser gespeichert. <button type="button" class="linkbtn" id="reset">Auf Standard zurücksetzen</button></p>
-    <p class="notes">Kostenlos und Open Source (<a href="https://github.com/maxxs78/ParametricPedalBoard" target="_blank" rel="noopener">GitHub</a>). Gefällt dir das Tool?</p>
+    <p class="notes" style="margin-top:14px"><span data-i18n="foot.saved"></span> <button type="button" class="linkbtn" id="reset" data-i18n="foot.reset"></button></p>
+    <p class="notes" data-i18n-html="foot.oss"></p>
     <a href="https://www.buymeacoffee.com/maxxs78" target="_blank" rel="noopener"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;"></a>
   </aside>
 
   <main class="main">
-    <section class="viewport" id="viewport" aria-label="3D-Vorschau">
+    <section class="viewport" id="viewport" data-i18n-aria="aria.viewport">
       <div class="hud"><div class="dim" id="hud-dim">–</div><div class="sub" id="hud-sub"></div></div>
       <div class="tools">
-        <button type="button" id="view-asm" hidden>← Zurück zur Baugruppe</button>
-        <button type="button" id="toggle-hw" aria-pressed="true">Normteile</button>
-        <button type="button" id="toggle-tr" aria-pressed="false">Transparent</button>
-        <button type="button" id="cam-iso">Schräg</button>
-        <button type="button" id="cam-side">Seite</button>
-        <button type="button" id="cam-top">Oben</button>
+        <button type="button" id="view-asm" data-i18n="tool.back" hidden></button>
+        <button type="button" id="toggle-hw" aria-pressed="true" data-i18n="tool.hw"></button>
+        <button type="button" id="toggle-tr" aria-pressed="false" data-i18n="tool.transparent"></button>
+        <button type="button" id="cam-iso" data-i18n="tool.iso"></button>
+        <button type="button" id="cam-side" data-i18n="tool.side"></button>
+        <button type="button" id="cam-top" data-i18n="tool.top"></button>
       </div>
       <div class="legend" id="legend"></div>
-      <label class="explode" id="explode-wrap">Explosion <input type="range" id="explode" min="0" max="1" step="0.01" value="0"></label>
-      <div class="busy" id="busy" hidden>Berechne…</div>
+      <label class="explode" id="explode-wrap"><span data-i18n="tool.explode"></span> <input type="range" id="explode" min="0" max="1" step="0.01" value="0"></label>
+      <div class="busy" id="busy" data-i18n="busy.calc" hidden></div>
     </section>
 
     <section class="dock">
       <div class="tabs" role="tablist">
-        <button role="tab" id="tab-parts" aria-selected="true" aria-controls="pane-parts">Druckteile <span class="count" id="c-parts">0</span></button>
-        <button role="tab" id="tab-plates" aria-selected="false" aria-controls="pane-plates">Druckplatten <span class="count" id="c-plates">0</span></button>
-        <button role="tab" id="tab-bom" aria-selected="false" aria-controls="pane-bom">Stückliste</button>
-        <button role="tab" id="tab-draw" aria-selected="false" aria-controls="pane-draw">Zeichnung</button>
-        <button role="tab" id="tab-msgs" aria-selected="false" aria-controls="pane-msgs">Prüfung <span class="count" id="c-msgs">0</span></button>
+        <button role="tab" id="tab-parts" aria-selected="true" aria-controls="pane-parts"><span data-i18n="tab.parts"></span> <span class="count" id="c-parts">0</span></button>
+        <button role="tab" id="tab-plates" aria-selected="false" aria-controls="pane-plates"><span data-i18n="tab.plates"></span> <span class="count" id="c-plates">0</span></button>
+        <button role="tab" id="tab-bom" aria-selected="false" aria-controls="pane-bom" data-i18n="tab.bom"></button>
+        <button role="tab" id="tab-draw" aria-selected="false" aria-controls="pane-draw" data-i18n="tab.draw"></button>
+        <button role="tab" id="tab-msgs" aria-selected="false" aria-controls="pane-msgs"><span data-i18n="tab.msgs"></span> <span class="count" id="c-msgs">0</span></button>
         <span class="spacer"></span>
-        <div class="actions"><button type="button" class="btn primary" id="zip">Alle STL als ZIP</button></div>
+        <div class="actions"><button type="button" class="btn primary" id="zip" data-i18n="tab.zip"></button></div>
       </div>
       <div class="pane" id="pane-parts" role="tabpanel"></div>
       <div class="pane" id="pane-plates" role="tabpanel" hidden></div>
       <div class="pane" id="pane-bom" role="tabpanel" hidden></div>
       <div class="pane" id="pane-draw" role="tabpanel" hidden>
         <div class="drawbar">
-          <button type="button" class="btn" id="draw-svg">SVG speichern</button>
-          <button type="button" class="btn" id="draw-pdf">Drucken / als PDF</button>
+          <button type="button" class="btn" id="draw-svg" data-i18n="draw.saveSvg"></button>
+          <button type="button" class="btn" id="draw-pdf" data-i18n="draw.print"></button>
           <span class="notes" id="draw-info"></span>
         </div>
         <div class="drawwrap" id="draw-preview"></div>
