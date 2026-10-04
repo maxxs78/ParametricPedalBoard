@@ -2,7 +2,7 @@
 
 # Parametric Pedal Board
 
-**[▶ Live-Konfigurator öffnen](https://maxxs78.github.io/ParametricPedalBoard/)**
+**[▶ Live-Konfigurator öffnen](https://maxxs78.github.io/ParametricPedalBoard/?lang=de)** · [🇬🇧 in English](https://maxxs78.github.io/ParametricPedalBoard/?lang=en)
 
 Browserbasierter Generator für 3D-druckbare Gitarren-Pedalboards im Stil von Rockboard, ModBoard und Co. Du stellst die Maße ein und prüfst live, ob alle Teile aufs Druckbett passen. Danach exportierst du die STL-Dateien samt Stückliste.
 
@@ -116,6 +116,7 @@ Export als SVG oder über „Drucken / als PDF“. Die ZIP-Datei enthält die Ze
 - **Farbschemata:** Hellfire, Toxic, High Voltage, Purple Haze, Cyber, Punk, Chrome & Blut, Goldtop und Stealth.
 - **Eigene Farben:** Jede Farbe ist einzeln einstellbar: Druckteile, Schienen/Profile/Platte, Streben, Rückwand, Schriftzug, Normteile und Netzteil.
 - **Transparent-Modus:** Die Deckkraft ist einstellbar. Schrauben, Muttern und Nutensteine bleiben deckend und sind so im Inneren sichtbar.
+- **Sprache:** Deutsch und Englisch. Die App folgt der Browsersprache (Englisch, außer bei Deutsch); der Umschalter DE | EN oben im Seitenbereich überschreibt das, und `?lang=de` / `?lang=en` in der URL wählt die Sprache direkt. Teilenamen, Prüfungen, Stückliste, Zeichnung und die Namen der 3MF-/ZIP-Dateien folgen der gewählten Sprache.
 - **Speicherung:** Die Einstellungen bleiben im Browser gespeichert.
 
 ## Druckplatten und 3MF
@@ -135,6 +136,8 @@ index.html          Oberfläche
 js/app.js           UI, 3D-Vorschau (three.js), STL/ZIP-Export
 js/pedalboard.js    Parametrische Geometrie (manifold-3d CSG), Normteile, Prüfungen, Stückliste
 js/drawing.js       Technische Zeichnung (SVG, A3)
+js/i18n.js          Übersetzungshilfe (t, tn, Zahlenformate)
+js/lang/de.js, en.js  Texte je Sprache (geprüft mit `node tools/check-i18n.mjs`)
 lib/manifold.*      manifold-3d 3.5.3 (Apache-2.0)
 ```
 
@@ -142,6 +145,8 @@ Die Geometrie lässt sich auch ohne Oberfläche nutzen, etwa in Node:
 
 ```js
 import { initGeometry, generate } from './js/pedalboard.js';
+import { initI18n } from './js/i18n.js';
+await initI18n('de', async l => (await import(`./js/lang/${l}.js`)).default);   // Texte der Prüfungen, Teilenamen, Stückliste
 await initGeometry();
 const r = generate({ mode: 'alu', W: 600, D: 300, bedX: 220, bedY: 220 });
 // r.parts[i].mesh = { positions, indices } in Druckrichtung, r.bom, r.errors, r.warnings
