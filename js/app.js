@@ -801,7 +801,7 @@ function renderParts() {
   const cnt = document.getElementById('c-parts');
   if (!result || !result.parts.length) {
     cnt.textContent = '0';
-    pane.innerHTML = `<p class="notes">${t('parts.none', { n: result ? result.errors.length : 0 })}</p>`;
+    pane.innerHTML = `<p class="notes">${tn('parts.none', result ? result.errors.length : 0)}</p>`;
     return;
   }
   const total = result.parts.reduce((s, x) => s + x.qty, 0);

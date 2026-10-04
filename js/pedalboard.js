@@ -5,7 +5,7 @@
 // Die Schienen liegen auf der geneigten Oberseite. "Hangkoordinaten" (a, b):
 //   a = Weg entlang der Oberseite ab Vorderkante, b = Normale zur Oberseite (0 = Oberfläche).
 
-import { t as tr, fx, num } from './i18n.js';
+import { t as tr, tn as trn, fx, num } from './i18n.js';
 
 let M = null;
 const garbage = [];
@@ -334,7 +334,7 @@ function derive(p) {
   const psuTierIdx = Math.max(0, Math.min(tiersArr.length - 1, Math.round(p.psuTier) - 1));
   G.psuTier = tiersArr[psuTierIdx];
   G.psus = psuBaysOf(nBays).map(k => derivePsu(G, k, G.psuTier));
-  if (psuCount > G.psus.length) errors.push(tr('e.psuCount', { n: G.psus.length, bays: nBays }));
+  if (psuCount > G.psus.length) errors.push(trn('e.psuCount', G.psus.length, { bays: nBays }));
   G.goodPsus = G.psus.filter(P => !P.bad);
   G.braces = [];                                   // folgt nach der Schnittplanung (generate)
   G.back = p.back ? deriveBack(G) : null;

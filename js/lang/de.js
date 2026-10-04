@@ -266,7 +266,8 @@ export default {
   'leg.psu': `Netzteil`,
 
   // ---- Teileliste und Material
-  'parts.none': `Keine Teile. Die Prüfung meldet {n} Fehler.`,
+  'parts.none.one': `Keine Teile. Die Prüfung meldet {n} Fehler.`,
+  'parts.none.other': `Keine Teile. Die Prüfung meldet {n} Fehler.`,
   'parts.fits': `passt`,
   'parts.diagonal': ` · {a}° diagonal`,
   'parts.noFit': `passt nicht`,
@@ -382,7 +383,8 @@ export default {
   'e.bendAlu': `Die Biegung ist bei Bauart B (durchgehendes Alu-Profil) nicht möglich. Wähle Bauart A oder C.`,
   'e.bendLimited': `Nach außen (konvex) wurde der Biegewinkel auf {max}° je Stütze begrenzt: Die Stütze wird dabei nach hinten dünner, und die Taschen der hintersten Schiene würden sich sonst berühren. Mehr Winkel geht mit einer dickeren Stütze oder weniger tief liegenden Schienen.`,
   'e.plateThick': `Die Platte ({t} mm) ist zu dick für {h} mm hohe Rippen.`,
-  'e.psuCount': `Es passen nur {n} Netzteile in die {bays} Felder.`,
+  'e.psuCount.one': `Es passt nur {n} Netzteil in die {bays} Felder.`,
+  'e.psuCount.other': `Es passen nur {n} Netzteile in die {bays} Felder.`,
   'e.dovetailNarrow': `Die Schienen sind zu schmal für den Schwalbenschwanz (mindestens 18 mm). Sie werden nur gesteckt und verschraubt.`,
   'e.psuNoRails': `Netzteilhalter: Es gibt keine zwei Schienen zum Anschrauben. Verschiebe das Netzteil oder mach es schmaler.`,
   'e.psuTooHigh': `Das Netzteil ist an dieser Stelle zu hoch, es fehlen {mm} mm Bodenfreiheit. Schieb es weiter nach hinten, erhöhe die Rückseite oder wähle ein flacheres Netzteil.`,

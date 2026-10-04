@@ -266,7 +266,8 @@ export default {
   'leg.psu': `Power supply`,
 
   // ---- Parts list and material
-  'parts.none': `No parts. The checks report {n} errors.`,
+  'parts.none.one': `No parts. The checks report {n} error.`,
+  'parts.none.other': `No parts. The checks report {n} errors.`,
   'parts.fits': `fits`,
   'parts.diagonal': ` · {a}° diagonal`,
   'parts.noFit': `does not fit`,
@@ -382,7 +383,8 @@ export default {
   'e.bendAlu': `Bending is not possible for build type B (continuous aluminum profile). Choose build type A or C.`,
   'e.bendLimited': `Outward (convex) the bend angle was limited to {max}° per support: the support becomes thinner toward the rear, and the pockets of the rearmost rail would otherwise touch. More angle is possible with a thicker support or less deeply seated rails.`,
   'e.plateThick': `The plate ({t} mm) is too thick for {h} mm high ribs.`,
-  'e.psuCount': `Only {n} power supplies fit into the {bays} bays.`,
+  'e.psuCount.one': `Only {n} power supply fits into the {bays} bays.`,
+  'e.psuCount.other': `Only {n} power supplies fit into the {bays} bays.`,
   'e.dovetailNarrow': `The rails are too narrow for the dovetail (at least 18 mm). They are only plugged in and screwed.`,
   'e.psuNoRails': `Power-supply holder: there are no two rails to screw it to. Move the power supply or make it narrower.`,
   'e.psuTooHigh': `The power supply is too tall at this position, it lacks {mm} mm of ground clearance. Move it further back, raise the rear or choose a flatter power supply.`,

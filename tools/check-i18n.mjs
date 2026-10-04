@@ -37,7 +37,7 @@ const calls = new Set(), plural = new Set(), mentioned = new Set();
 for (const f of files) {
   const src = read(f);
   for (const m of src.matchAll(/\b(?:t|tr)\(\s*'([\w.]+)'/g)) calls.add(m[1]);
-  for (const m of src.matchAll(/\btn\(\s*'([\w.]+)'/g)) plural.add(m[1]);
+  for (const m of src.matchAll(/\b(?:tn|trn)\(\s*'([\w.]+)'/g)) plural.add(m[1]);
   for (const m of src.matchAll(/data-i18n(?:-html|-aria)?="([\w.]+)"/g)) calls.add(m[1]);
   for (const m of src.matchAll(/'([\w.]+)'/g)) mentioned.add(m[1]);
 }
@@ -47,5 +47,15 @@ for (const k of calls) if (!(k in de) && !k.endsWith('.')) fail(`im Code verwend
 for (const k of plural) for (const sfx of ['.one', '.other']) if (!(k + sfx in de)) fail(`tn('${k}') ohne ${k + sfx}`);
 const unused = Object.keys(de).filter(k => !mentioned.has(k) && !calls.has(k) && !dynamic.test(k) && ![...plural].some(p => k === p + '.one' || k === p + '.other'));
 for (const k of unused) console.log('· evtl. unbenutzt: ' + k);
+// Vorab-Text in index.html (sichtbar, bevor app.js geladen ist) muss dem englischen Wörterbuch entsprechen
+const html = read('index.html');
+const unesc = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+for (const m of html.matchAll(/<(\w+)\b[^>]*\sdata-i18n(-html)?="([\w.]+)"[^>]*>([\s\S]*?)<\/\1>/g)) {
+  const want = en[m[3]], have = m[2] ? m[4] : unesc(m[4]);
+  if (have !== want) fail(`index.html: Vorab-Text bei ${m[3]} weicht von en.js ab (“${have.slice(0, 40)}”)`);
+}
+for (const m of html.matchAll(/aria-label="([^"]*)"\s+data-i18n-aria="([\w.]+)"/g)) {
+  if (unesc(m[1]) !== en[m[2]]) fail(`index.html: aria-label bei ${m[2]} weicht von en.js ab`);
+}
 console.log(`${Object.keys(de).length} Schlüssel (de), ${Object.keys(en).length} (en)` + (problems ? ` – ${problems} Problem(e)` : ' – alles konsistent'));
 process.exit(problems ? 1 : 0);
