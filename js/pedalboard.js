@@ -1048,6 +1048,14 @@ function psuHolder(G, P, one = false) {
   cut.push(box(-t - 1, 0.01, P.aR - 16, P.aR - 11, P.bIn + 3, P.bIn + 11));
   if (one) cut.push(box(L - 0.01, L + t + 1, P.aR - 16, P.aR - 11, P.bIn + 3, P.bIn + 11));
   m = minus(m, cut);
+  // Bricht der Zugang durch die Vorderwand, schließt eine dünnere Wand im Radius um die Bohrung die Lücke wieder
+  const rB = S.hd / 2 + 0.75, tw = Math.min(1.2, t / 2), fill = [];
+  for (const hole of P.holes) if (hole.a - rB < P.aL) for (const xl of P.screwXl) for (const x of one ? [xl, L - xl] : [xl]) {
+    const ring = M.Manifold.cylinder(P.bTop - P.tp + 1 - bLow, rB + tw, rB + tw, 40).translate([x, hole.a, bLow])
+      .subtract(M.Manifold.cylinder(P.bTop - P.tp + 3 - bLow, rB, rB, 40).translate([x, hole.a, bLow - 1]));
+    fill.push(ring.intersect(box(-t, xBot, hole.a - rB - tw - 1, P.aL, P.bIn - t, P.bTop - P.tp)));   // auch außen an der Wand (halbes Rohr)
+  }
+  if (fill.length) m = union([m, ...fill]);
   return m;
 }
 
