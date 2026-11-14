@@ -140,8 +140,11 @@ js/pedalboard.js    Parametrische Geometrie (manifold-3d CSG), Normteile, Prüfu
 js/drawing.js       Technische Zeichnung (SVG, A3)
 js/i18n.js          Übersetzungshilfe (t, tn, Zahlenformate)
 js/lang/de.js, en.js  Texte je Sprache (geprüft mit `node tools/check-i18n.mjs`)
+tools/test.mjs      Prüfungen, Aufruf mit `npm test` (Details in tools/test/)
 lib/manifold.*      manifold-3d 3.5.3 (Apache-2.0)
 ```
+
+`npm test` (Node 18+, ohne Abhängigkeiten) prüft die Übersetzungen, vergleicht Kennzahlen von 13 Voreinstellungen mit einem Referenzstand (`tools/test/golden.json`; nach gewollten Geometrie-Änderungen `npm run test:update` ausführen und den Diff prüfen), stellt an Zufallskonfigurationen sicher, dass jede Netzteil-Schraube von unten mit dem Schraubendreher erreichbar ist, und prüft schichtweise, dass die einteilige Netzteilbox ohne Stützstrukturen druckbar ist. GitHub Actions führt dasselbe bei jedem Push aus.
 
 Die Geometrie lässt sich auch ohne Oberfläche nutzen, etwa in Node:
 

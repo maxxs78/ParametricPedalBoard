@@ -140,8 +140,11 @@ js/pedalboard.js    Parametric geometry (manifold-3d CSG), standard hardware, va
 js/drawing.js       Technical drawing (SVG, A3)
 js/i18n.js          Translation helper (t, tn, number formats)
 js/lang/de.js, en.js  Texts per language (checked by `node tools/check-i18n.mjs`)
+tools/test.mjs      Checks, run with `npm test` (details in tools/test/)
 lib/manifold.*      manifold-3d 3.5.3 (Apache-2.0)
 ```
+
+`npm test` (Node 18+, no dependencies) checks the translations, compares key figures of 13 presets with a reference (`tools/test/golden.json`; after intended geometry changes run `npm run test:update` and review the diff), verifies on random configurations that every power-supply screw can be reached with a screwdriver from below, and checks layer by layer that the one-piece power-supply box needs no supports. GitHub Actions runs the same on every push.
 
 The geometry can also be used without the UI, e.g. in Node:
 

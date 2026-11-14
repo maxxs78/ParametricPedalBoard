@@ -1,0 +1,1499 @@
+{
+ "default": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 36,
+  "hardware": 72,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.5,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 2 middle · 190 mm",
+    2,
+    69.8,
+    true
+   ],
+   [
+    "Rail 3 right · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 4 middle · 190 mm (with power-supply mounting)",
+    2,
+    103,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    122,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    122,
+    true
+   ],
+   [
+    "Brace 1 left · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Brace 2 middle · 190 mm",
+    2,
+    44.8,
+    true
+   ],
+   [
+    "Brace 3 right · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "no-psu": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 33,
+  "hardware": 64,
+  "bom": 9,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    156.8,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    156.8,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.1,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 195 mm",
+    4,
+    70.1,
+    true
+   ],
+   [
+    "Rail 2 middle · 185 mm",
+    4,
+    68.6,
+    true
+   ],
+   [
+    "Rail 3 right · 195 mm",
+    4,
+    70.1,
+    true
+   ],
+   [
+    "Brace 1 left · 195 mm",
+    2,
+    46,
+    true
+   ],
+   [
+    "Brace 2 middle · 185 mm",
+    2,
+    43.7,
+    true
+   ],
+   [
+    "Brace 3 right · 195 mm",
+    2,
+    46,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    82.6,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    73.8,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    82.6,
+    true
+   ]
+  ]
+ },
+ "alu": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 24,
+  "hardware": 80,
+  "bom": 15,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    118.1,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    118.1,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    155.4,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    155.4,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    114.8,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    152,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    126.5,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    126.5,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    40.9,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "plate": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 30,
+  "hardware": 72,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.5,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Plate left · Strip 1/2 · 192 mm",
+    1,
+    184.2,
+    true
+   ],
+   [
+    "Plate left · Strip 2/2 · 192 mm",
+    1,
+    181.6,
+    true
+   ],
+   [
+    "Plate middle · Strip 1/2 · 190 mm",
+    1,
+    184,
+    true
+   ],
+   [
+    "Plate middle · Strip 2/2 · 190 mm (with power-supply mounting)",
+    1,
+    247.9,
+    true
+   ],
+   [
+    "Plate right · Strip 1/2 · 192 mm",
+    1,
+    184.2,
+    true
+   ],
+   [
+    "Plate right · Strip 2/2 · 192 mm",
+    1,
+    181.6,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    122,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    122,
+    true
+   ],
+   [
+    "Brace 1 left · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Brace 2 middle · 190 mm",
+    2,
+    44.8,
+    true
+   ],
+   [
+    "Brace 3 right · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "plate-clips": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 34,
+  "hardware": 75,
+  "bom": 12,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.5,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Plate left · Strip 1/2 · 192 mm",
+    1,
+    184.2,
+    true
+   ],
+   [
+    "Plate left · Strip 2/2 · 192 mm",
+    1,
+    181.6,
+    true
+   ],
+   [
+    "Plate middle · Strip 1/2 · 190 mm",
+    1,
+    184,
+    true
+   ],
+   [
+    "Plate middle · Strip 2/2 · 190 mm (with power-supply mounting)",
+    1,
+    247.9,
+    true
+   ],
+   [
+    "Plate right · Strip 1/2 · 192 mm",
+    1,
+    184.2,
+    true
+   ],
+   [
+    "Plate right · Strip 2/2 · 192 mm",
+    1,
+    181.6,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    122,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    122,
+    true
+   ],
+   [
+    "Brace 1 left · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Brace 2 middle · 190 mm",
+    2,
+    44.8,
+    true
+   ],
+   [
+    "Brace 3 right · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "PedalClip insert Spring clip",
+    1,
+    10.9,
+    true
+   ],
+   [
+    "PedalClip insert Bayonet",
+    1,
+    4.8,
+    true
+   ],
+   [
+    "PedalClip base plate 1590B (MXR etc.) · Spring clip",
+    1,
+    30,
+    true
+   ],
+   [
+    "PedalClip base plate Mini (Mooer, TC Mini …) rotated · Bayonet",
+    1,
+    17.2,
+    true
+   ]
+  ]
+ },
+ "bend": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 36,
+  "hardware": 72,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    202,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    424.6,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 191 mm",
+    4,
+    68.1,
+    true
+   ],
+   [
+    "Rail 2 middle · 186 mm",
+    2,
+    67.1,
+    true
+   ],
+   [
+    "Rail 3 right · 191 mm",
+    4,
+    68.1,
+    true
+   ],
+   [
+    "Rail 4 middle · 186 mm (with power-supply mounting)",
+    2,
+    100.3,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    122,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    122,
+    true
+   ],
+   [
+    "Brace 1 left · 191 mm",
+    2,
+    45,
+    true
+   ],
+   [
+    "Brace 2 middle · 186 mm",
+    2,
+    43.9,
+    true
+   ],
+   [
+    "Brace 3 right · 191 mm",
+    2,
+    45,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "bend-alu": {
+  "errors": 0,
+  "warnings": 1,
+  "assembly": 32,
+  "hardware": 120,
+  "bom": 15,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    118.1,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    118.1,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    155.4,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    155.4,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    4,
+    114.8,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    4,
+    152,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    6,
+    9.6,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    126.5,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    126.5,
+    true
+   ],
+   [
+    "Back panel · Part 1/5",
+    1,
+    65.1,
+    true
+   ],
+   [
+    "Back panel · Part 2/5",
+    1,
+    56.2,
+    true
+   ],
+   [
+    "Back panel · Part 3/5",
+    1,
+    40.9,
+    true
+   ],
+   [
+    "Back panel · Part 4/5",
+    1,
+    56.2,
+    true
+   ],
+   [
+    "Back panel · Part 5/5",
+    1,
+    65.1,
+    true
+   ]
+  ]
+ },
+ "tiers3": {
+  "errors": 0,
+  "warnings": 2,
+  "assembly": 33,
+  "hardware": 88,
+  "bom": 9,
+  "parts": [
+   [
+    "End cap left · Part 1/3",
+    1,
+    276.7,
+    true
+   ],
+   [
+    "End cap right · Part 1/3",
+    1,
+    276.7,
+    true
+   ],
+   [
+    "End cap left · Part 2/3",
+    1,
+    782,
+    true
+   ],
+   [
+    "End cap right · Part 2/3",
+    1,
+    782,
+    true
+   ],
+   [
+    "End cap left · Part 3/3",
+    1,
+    799.8,
+    true
+   ],
+   [
+    "End cap right · Part 3/3",
+    1,
+    799.8,
+    true
+   ],
+   [
+    "Support · Part 1/3",
+    1,
+    262,
+    true
+   ],
+   [
+    "Support · Part 2/3",
+    1,
+    788.3,
+    true
+   ],
+   [
+    "Support · Part 3/3",
+    1,
+    812.4,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    3,
+    13.9,
+    true
+   ],
+   [
+    "Connecting tab 2",
+    3,
+    15.7,
+    true
+   ],
+   [
+    "Rail 1 left · 337 mm",
+    8,
+    109.1,
+    true
+   ],
+   [
+    "Rail 2 right · 337 mm",
+    8,
+    109.1,
+    true
+   ],
+   [
+    "Back panel · Part 1/2",
+    1,
+    321.6,
+    true
+   ],
+   [
+    "Back panel · Part 2/2",
+    1,
+    321.6,
+    true
+   ]
+  ]
+ },
+ "text": {
+  "errors": 0,
+  "warnings": 1,
+  "assembly": 36,
+  "hardware": 72,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.5,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 2 middle · 190 mm",
+    2,
+    69.8,
+    true
+   ],
+   [
+    "Rail 3 right · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 4 middle · 190 mm (with power-supply mounting)",
+    2,
+    103,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    122,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    122,
+    true
+   ],
+   [
+    "Brace 1 left · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Brace 2 middle · 190 mm",
+    2,
+    44.8,
+    true
+   ],
+   [
+    "Brace 3 right · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "psu-box": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 36,
+  "hardware": 72,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.5,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 2 middle · 190 mm",
+    2,
+    69.8,
+    true
+   ],
+   [
+    "Rail 3 right · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 4 middle · 190 mm (with power-supply mounting)",
+    2,
+    103,
+    true
+   ],
+   [
+    "Power-supply box left",
+    1,
+    121.8,
+    true
+   ],
+   [
+    "Power-supply box right",
+    1,
+    121.8,
+    true
+   ],
+   [
+    "Brace 1 left · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Brace 2 middle · 190 mm",
+    2,
+    44.8,
+    true
+   ],
+   [
+    "Brace 3 right · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "psu-box-one": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 35,
+  "hardware": 72,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    155,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    155,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    141.2,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 195 mm",
+    4,
+    70.1,
+    true
+   ],
+   [
+    "Rail 2 middle · 185 mm",
+    2,
+    68.6,
+    true
+   ],
+   [
+    "Rail 3 right · 195 mm",
+    4,
+    70.1,
+    true
+   ],
+   [
+    "Rail 4 middle · 185 mm (with power-supply mounting)",
+    2,
+    101.8,
+    true
+   ],
+   [
+    "Power-supply box",
+    1,
+    224.7,
+    true
+   ],
+   [
+    "Brace 1 left · 195 mm",
+    2,
+    46,
+    true
+   ],
+   [
+    "Brace 2 middle · 185 mm",
+    2,
+    43.7,
+    true
+   ],
+   [
+    "Brace 3 right · 195 mm",
+    2,
+    46,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    82.6,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    39.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    82.6,
+    true
+   ]
+  ]
+ },
+ "psu-bracket": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 36,
+  "hardware": 68,
+  "bom": 10,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    126.8,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    157.2,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    2,
+    111.3,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    2,
+    143.5,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    4,
+    9.6,
+    true
+   ],
+   [
+    "Rail 1 left · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 2 middle · 190 mm",
+    2,
+    69.8,
+    true
+   ],
+   [
+    "Rail 3 right · 192 mm",
+    4,
+    69.5,
+    true
+   ],
+   [
+    "Rail 4 middle · 190 mm (with power-supply mounting)",
+    2,
+    86.4,
+    true
+   ],
+   [
+    "Power-supply bracket left",
+    1,
+    56.6,
+    true
+   ],
+   [
+    "Power-supply bracket right",
+    1,
+    56.6,
+    true
+   ],
+   [
+    "Brace 1 left · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Brace 2 middle · 190 mm",
+    2,
+    44.8,
+    true
+   ],
+   [
+    "Brace 3 right · 192 mm",
+    2,
+    45.4,
+    true
+   ],
+   [
+    "Back panel · Part 1/3",
+    1,
+    81.7,
+    true
+   ],
+   [
+    "Back panel · Part 2/3",
+    1,
+    41.3,
+    true
+   ],
+   [
+    "Back panel · Part 3/3",
+    1,
+    81.7,
+    true
+   ]
+  ]
+ },
+ "psu-alu-two": {
+  "errors": 0,
+  "warnings": 0,
+  "assembly": 35,
+  "hardware": 120,
+  "bom": 15,
+  "parts": [
+   [
+    "End cap left · Part 1/2",
+    1,
+    118.1,
+    true
+   ],
+   [
+    "End cap right · Part 1/2",
+    1,
+    118.1,
+    true
+   ],
+   [
+    "End cap left · Part 2/2",
+    1,
+    155.4,
+    true
+   ],
+   [
+    "End cap right · Part 2/2",
+    1,
+    155.4,
+    true
+   ],
+   [
+    "Support · Part 1/2",
+    4,
+    114.8,
+    true
+   ],
+   [
+    "Support · Part 2/2",
+    4,
+    152,
+    true
+   ],
+   [
+    "Connecting tab 1",
+    6,
+    9.6,
+    true
+   ],
+   [
+    "Power-supply box left",
+    2,
+    86.1,
+    true
+   ],
+   [
+    "Power-supply box right",
+    2,
+    86.1,
+    true
+   ],
+   [
+    "Back panel · Part 1/5",
+    1,
+    77,
+    true
+   ],
+   [
+    "Back panel · Part 2/5",
+    1,
+    44.6,
+    true
+   ],
+   [
+    "Back panel · Part 3/5",
+    1,
+    44.6,
+    true
+   ],
+   [
+    "Back panel · Part 4/5",
+    1,
+    68.1,
+    true
+   ],
+   [
+    "Back panel · Part 5/5",
+    1,
+    77,
+    true
+   ]
+  ]
+ }
+}

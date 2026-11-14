@@ -1,0 +1,9 @@
+{
+  "name": "parametric-pedalboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tools/test.mjs",
+    "test:update": "node tools/test.mjs --update"
+  }
+}
