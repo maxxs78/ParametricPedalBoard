@@ -3,7 +3,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generate } from './harness.mjs';
+import { generate, eng } from './harness.mjs';
+import { buildDrawing } from '../../js/drawing.js';
 
 const goldenFile = path.join(path.dirname(fileURLToPath(import.meta.url)), 'golden.json');
 
@@ -44,6 +45,16 @@ export default function run({ log, fail, update }) {
       if (!(p.volume > 0) || !p.mesh.indices.length) fail(`${name}: Teil „${p.name}“ ist leer oder hat kein Volumen`);
     }
     for (const a of res.assembly) if (!a.mesh.indices.length) fail(`${name}: leeres Teil in der Baugruppe (${a.role})`);
+    if (res.drawing) {                                              // Zeichnung entsteht ohne Fehler; gebogen mit Stützenkette und Neigungswinkel
+      let svg = '';
+      try { svg = buildDrawing(res, { ...eng.DEFAULTS, ...cfg }); } catch (e) { fail(`${name}: Zeichnung: ${e.message}`); }
+      if (res.drawing.bent) {
+        const sup = res.drawing.bentSup || [];
+        if (sup.length !== res.drawing.supports.length || sup.some((x, i) => i && x <= sup[i - 1])) fail(`${name}: gebogene Zeichnung: Stützenpositionen ungültig`);
+        const ang = res.drawing.angle.toFixed(1).replace('.', ',');
+        if (svg && !(svg.includes(`${res.drawing.angle.toFixed(1)}°`) || svg.includes(`${ang}°`))) fail(`${name}: gebogene Zeichnung ohne Neigungswinkel`);
+      }
+    }
     now[name] = snapshot(res);
   }
   if (update) {

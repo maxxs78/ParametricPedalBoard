@@ -85,6 +85,15 @@ export function buildDrawing(result, params) {
     text([xLine - 0.9, cy], label, 2.5, 'middle', `transform="rotate(-90 ${(xLine - 0.9).toFixed(2)} ${cy.toFixed(2)})"`);
   };
   const title = (p, str) => text(p, str, 3.5, 'start', 'font-weight="bold"');
+  // Neigungswinkel an der hinteren Oberkante o, außerhalb des Bauteils: Horizontale nach links, Schräge verlängert
+  const slopeArc = o => {
+    const R = 16, a = d.angle * Math.PI / 180;
+    const p1 = [o[0] - R, o[1]], p2 = [o[0] - R * Math.cos(a), o[1] - R * Math.sin(a)];
+    line(o, [o[0] - R - 3, o[1]], 'd');
+    line(o, [o[0] - (R + 3) * Math.cos(a), o[1] - (R + 3) * Math.sin(a)], 'd');
+    push(`<path class="d" d="M${p1[0].toFixed(2)},${p1[1].toFixed(2)} A${R},${R} 0 0 1 ${p2[0].toFixed(2)},${p2[1].toFixed(2)}"/>`);
+    text([o[0] - R * 0.55, o[1] - (R + 3) * Math.sin(a) - 1.8], `${f1(d.angle)}°`, 2.5, 'middle');
+  };
 
   if (bent) {
     // Gebogenes Board: Schattenriss jedes Bauteils, von hinten nach vorn übereinandergelegt (Maler-Algorithmus);
@@ -98,14 +107,18 @@ export function buildDrawing(result, params) {
     };
     // Vorderansicht (X–Z)
     show('front', ([x, z]) => F(x, z), b => -mid(b, 1));
+    const sup = d.bentSup || [];                                  // Stützenmitten an der Vorderkante (projiziert)
+    sup.forEach(x => line(F(x, -3), F(x, d.hB + 3), 'c'));
     dimH(F(ox, d.hB), F(ox + W0, d.hB), F(0, d.hB)[1] - 8, f1(W0));
     dimV(F(ox, 0), F(ox, d.hF), F(ox, 0)[0] - 7, f1(d.hF));
+    [ox, ...sup, ox + W0].forEach((x, i, arr) => { if (i) dimH(F(arr[i - 1], 0), F(x, 0), fy + 7, f1(x - arr[i - 1])); });
     title([fx, view.y0 + 1], tr('dr.front'));
     // Seitenansicht von links (Y–Z)
     show('side', ([y, z]) => Sd(y, z), b => -mid(b, 0));
     dimH(Sd(oy + D0, 0), Sd(oy, 0), fy + 7, f1(D0));
     dimV(Sd(oy, 0), Sd(oy, d.hF), Sd(oy, 0)[0] + 7, f1(d.hF));
     dimV(Sd(oy + D0, 0), Sd(oy + D0, d.hB), Sd(oy + D0, 0)[0] - 20, f1(d.hB));
+    slopeArc(Sd(d.D, d.hB));
     title([sx, view.y0 + 1], tr('dr.side'));
     // Draufsicht (X–Y)
     show('top', ([x, y]) => T(x, y), b => mid(b, 2));
@@ -184,17 +197,7 @@ export function buildDrawing(result, params) {
   dimH(Sd(d.D, 0), Sd(0, 0), fy + 7, f1(d.D));
   dimV(Sd(0, 0), Sd(0, d.hF), Sd(0, 0)[0] + 7, f1(d.hF));
   dimV(Sd(d.D, 0), Sd(d.D, d.hB), Sd(d.D, 0)[0] - 20, f1(d.hB));
-  // Neigungswinkel
-  {
-    // an der hinteren Oberkante, außerhalb des Bauteils: Horizontale nach links, Schräge verlängert
-    const o = Sd(d.D, d.hB), R = 16;
-    const a = d.angle * Math.PI / 180;
-    const p1 = [o[0] - R, o[1]], p2 = [o[0] - R * Math.cos(a), o[1] - R * Math.sin(a)];
-    line(o, [o[0] - R - 3, o[1]], 'd');
-    line(o, [o[0] - (R + 3) * Math.cos(a), o[1] - (R + 3) * Math.sin(a)], 'd');
-    push(`<path class="d" d="M${p1[0].toFixed(2)},${p1[1].toFixed(2)} A${R},${R} 0 0 1 ${p2[0].toFixed(2)},${p2[1].toFixed(2)}"/>`);
-    text([o[0] - R * 0.55, o[1] - (R + 3) * Math.sin(a) - 1.8], `${f1(d.angle)}°`, 2.5, 'middle');
-  }
+  slopeArc(Sd(d.D, d.hB));
   title([sx, view.y0 + 1], tr('dr.side'));
 
   // ---------------------------------------------------------------- Draufsicht (X–Y)

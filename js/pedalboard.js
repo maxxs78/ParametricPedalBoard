@@ -1639,7 +1639,7 @@ export function generate(params) {
     result.info.pieces = np;
     result.info.cuts = cuts.map(c => c.c);
     result.drawing = drawingData(G, prof2D, cuts);
-    if (G.bendA) result.drawing.bent = bentViews(result.assembly);
+    if (G.bendA) { result.drawing.bent = bentViews(result.assembly); result.drawing.bentSup = G.supports.map((c, k) => bendXY(G.segT[k], c, 0)[0]); }
   } catch (e) {
     console.error(e);
     G.errors.push(tr('e.geomError', { msg: e.message }));
